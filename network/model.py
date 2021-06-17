@@ -1,5 +1,186 @@
 import torch
-import torch.nn as nn
+from torch import nn, einsum
+import torch.nn.functional as F
+from einops import rearrange, reduce, repeat
+from kornia import filter2d
+
+
+class GlobalContext(nn.Module):
+    def __init__(
+        self,
+        *,
+        chan_in,
+        chan_out
+    ):
+        super().__init__()
+        self.to_k = nn.Conv2d(chan_in, 1, 1)
+        chan_intermediate = max(3, chan_out // 2)
+
+        self.net = nn.Sequential(
+            nn.Conv2d(chan_in, chan_intermediate, 1),
+            nn.LeakyReLU(0.1),
+            nn.Conv2d(chan_intermediate, chan_out, 1),
+            nn.Sigmoid()
+        )
+    def forward(self, x):
+        context = self.to_k(x)
+        context = context.flatten(2).softmax(dim = -1)
+        out = einsum('b i n, b c n -> b c i', context, x.flatten(2))
+        out = out.unsqueeze(-1)
+        return self.net(out)
+
+
+class DepthWiseConv2d(nn.Module):
+    def __init__(self, dim_in, dim_out, kernel_size, padding = 0, stride = 1, bias = True):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Conv2d(dim_in, dim_in, kernel_size = kernel_size, padding = padding, groups = dim_in, stride = stride, bias = bias),
+            nn.Conv2d(dim_in, dim_out, kernel_size = 1, bias = bias)
+        )
+    def forward(self, x):
+        return self.net(x)
+
+
+class Blur(nn.Module):
+    def __init__(self):
+        super().__init__()
+        f = torch.Tensor([1, 2, 1])
+        self.register_buffer('f', f)
+    def forward(self, x):
+        f = self.f
+        f = f[None, None, :] * f[None, :, None]
+        return filter2d(x, f, normalized=True)
+
+
+class Upsample(nn.Module):
+    def __init__(self,chan_in, chan_out, scale_factor=2):
+        super(Upsample, self).__init__()
+        self.up = nn.Sequential(
+            nn.Upsample(scale_factor),
+            Blur(),
+            nn.Conv2d(chan_in, chan_out * 2, 3, padding=1),
+            nn.BatchNorm2d(chan_out * 2),
+            nn.GLU(dim=1)
+        )
+
+    def forward(self, x):
+        return self.up(x)
+
+
+class LinearAttention(nn.Module):
+    def __init__(self, dim, dim_head = 64, heads = 8):
+        super().__init__()
+        self.scale = dim_head ** -0.5
+        self.heads = heads
+        inner_dim = dim_head * heads
+
+        self.nonlin = nn.GELU()
+        self.to_q = nn.Conv2d(dim, inner_dim, 1, bias = False)
+        self.to_kv = DepthWiseConv2d(dim, inner_dim * 2, 3, padding = 1, bias = False)
+        self.to_out = nn.Conv2d(inner_dim, dim, 1)
+
+    def forward(self, fmap):
+        h, x, y = self.heads, *fmap.shape[-2:]
+        q, k, v = (self.to_q(fmap), *self.to_kv(fmap).chunk(2, dim = 1))
+        q, k, v = map(lambda t: rearrange(t, 'b (h c) x y -> (b h) (x y) c', h = h), (q, k, v))
+
+        q = q.softmax(dim = -1)
+        k = k.softmax(dim = -2)
+
+        q = q * self.scale
+
+        context = einsum('b n d, b n e -> b d e', k, v)
+        out = einsum('b n d, b d e -> b n e', q, context)
+        out = rearrange(out, '(b h) (x y) d -> b (h d) x y', h = h, x = x, y = y)
+
+        out = self.nonlin(out)
+        return self.to_out(out)
+
+
+class ConditionAttention(nn.Module):
+    def __init__(self, in_channel, out_channel, hidden_channel=None):
+        super(ConditionAttention, self).__init__()
+        if hidden_channel is None:
+            hidden_channel = in_channel
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(in_channel, hidden_channel, kernel_size=(1, 1)),
+            nn.ReLU())
+        self.conv2 = nn.Sequential(
+            nn.Conv2d(hidden_channel, out_channel, kernel_size=(3, 3), padding=(1, 1)),
+            nn.ReLU()
+        )
+    def forward(self, x, condition):
+        # Bxcx1x1, Bxcxhxw
+        x = self.conv1(x)
+        p = F.normalize(x, dim=1)
+        # Bx1xhxw
+        atten_map = F.sigmoid(torch.sum(p*condition, dim=1)).unsqueeze(1)
+        out = self.conv2(x*atten_map)
+        return out
+
+
+class ConditionAttenLayer(nn.Module):
+    def __init__(self, in_channel, out_channel, hidden_channel=None):
+        super(ConditionAttenLayer, self).__init__()
+        if hidden_channel is None:
+            hidden_channel = in_channel * 2
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(in_channel, hidden_channel, kernel_size=(1, 1)),
+            nn.ReLU())
+        self.conv2 = nn.Sequential(
+            nn.Conv2d(hidden_channel, out_channel, kernel_size=(3, 3), padding=(1, 1)),
+            nn.ReLU()
+        )
+    def forward(self, x, condition):
+        # Bxcx1x1, Bxcxhxw
+        x = self.conv1(x)
+        p = F.normalize(x, dim=1)
+        # Bx1xhxw
+        atten_map = F.sigmoid(torch.sum(p*condition, dim=1)).unsqueeze(1)
+        out = self.conv2(x*atten_map)
+        return out
+
+
+class LightG(nn.Module):
+    def __init__(self, input_channel, channels, output_channel):
+        super(LightG, self).__init__()
+        self.model = nn.Sequential(
+            nn.ConvTranspose2d(input_channel, channels[0], 4, 1, 0, bias=True),
+            nn.BatchNorm2d(channels[0]),
+            nn.GLU(dim=1),)
+
+        self.up1 = Upsample(chan_in=channels[0], chan_out=channels[1], scale_factor=2)
+        self.up2 = Upsample(chan_in=channels[1], chan_out=channels[1])
+
+        self.up3 = Upsample(chan_in=channels[1], chan_out=channels[2])
+
+        self.up4 = Upsample(chan_in=channels[2], chan_out=channels[3])
+        self.up5 = Upsample(chan_in=channels[3], chan_out=channels[4])
+
+        self.to_rgb = nn.Sequential(
+            nn.Conv2d(channels[4], channels[4], kernel_size=(3, 3), padding=(1, 1)),
+            nn.BatchNorm2d(channels[4]),
+            nn.GLU(dim=1),
+            nn.Conv2d(channels[4], out_channels=output_channel, kernel_size=(3, 3), padding=(1, 1))
+        )
+
+        self.se1 = GlobalContext(chan_in=channels[1], chan_out=channels[3])
+        self.se2 = GlobalContext(chan_in=channels[1], chan_out=channels[4])
+
+    def forward(self, x):
+        x = self.model(x)
+        x1 = self.up1(x)
+        se1 = self.se1(x1)
+
+        x2 = self.up2(x1)
+        se2 = self.se2(x2)
+        x3 = self.up3(x2)
+        x4 = self.up4(x3*se1)
+        x5 = self.up5(x4*se2)
+
+        out = self.to_rgb(x5)
+
+        return out
 
 
 class BasicGenerator(nn.Module):

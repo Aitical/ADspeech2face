@@ -287,9 +287,12 @@ class Classifier(nn.Module):
 
 def get_network(net_type, params, train=True):
     net_params = params[net_type]
-    net = net_params['network'](net_params['input_channel'],
-                                net_params['channels'],
-                                net_params['output_channel'])
+    if net_type == 'arcface':
+        net = net_params['network'](fp16=False)
+    else:
+        net = net_params['network'](net_params['input_channel'],
+                                    net_params['channels'],
+                                    net_params['output_channel'])
 
     if params['GPU']:
         net.cuda()

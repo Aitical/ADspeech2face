@@ -1,7 +1,10 @@
 import string
 from dataset import VoiceDataset, FaceDataset
-from network import VoiceEmbedNet, Generator, FaceEmbedNet, Classifier, BasicGenerator, BSEGenerator
+from network import VoiceEmbedNet, Generator, FaceEmbedNet, Classifier, BasicGenerator, BSEGenerator, LightG
 from utils import get_collate_fn
+from backbones import iresnet34
+
+
 
 DATASET_PARAMETERS = {
     # meta data provided by voxceleb1 dataset
@@ -39,15 +42,15 @@ NETWORKS_PARAMETERS = {
         'input_channel': 64,
         'channels': [256, 384, 576, 864],
         'output_channel': 64,  # the embedding dimension
-        'model_path': 'pretrained_models/voice_embedding.pth',
+        'model_path': 'pretrained_models/speech2face_model/voice_embedding.pth',
     },
     # GENERATOR (g)
     'g': {
-        'network': BSEGenerator,
+        'network': LightG,
         'input_channel': 64,
         'channels': [1024, 512, 256, 128, 64],  # channels for deconvolutional layers
         'output_channel': 3,  # images with RGB channels
-        'model_path': 'models/generator_l1_edsr_16_64.pth',
+        'model_path': './experiments/arcface/generator_l1_edsr_16_64.pth',
     },
     # FACE EMBEDDING NETWORK (f)
     'f': {
@@ -55,7 +58,7 @@ NETWORKS_PARAMETERS = {
         'input_channel': 3,
         'channels': [32, 64, 128, 256, 512],
         'output_channel': 64,
-        'model_path': 'models/face_embedding.pth',
+        'model_path': './experiments/arcface/face_embedding.pth',
     },
     # DISCRIMINATOR (d)
     'd': {
@@ -63,7 +66,7 @@ NETWORKS_PARAMETERS = {
         'input_channel': 64,
         'channels': [],
         'output_channel': 1,
-        'model_path': 'models/discriminator.pth',
+        'model_path': './experiments/arcface/discriminator.pth',
     },
     # CLASSIFIER (c)
     'c': {
@@ -71,8 +74,15 @@ NETWORKS_PARAMETERS = {
         'input_channel': 64,
         'channels': [],
         'output_channel': -1,  # This parameter is depended on the dataset we used
-        'model_path': 'models/classifier.pth',
+        'model_path': './experiments/arcface/classifier.pth',
     },
+
+    'arcface': {
+        'network': iresnet34,
+        'fp16': False,
+        'model_path': './pretrained_models/arc_face_model/backbone.pth'
+    },
+
     # OPTIMIZER PARAMETERS 
     'lr': 0.0002,
     'beta1': 0.5,
