@@ -4,8 +4,8 @@ import torch
 import torch.nn.functional as F
 
 from torch.utils.data import DataLoader
-from config import DATASET_PARAMETERS, NETWORKS_PARAMETERS
-from parse_dataset import get_dataset
+from config import dataset_config, NETWORKS_PARAMETERS, experiment_name, experiment_path
+# from parse_dataset import get_dataset
 from network import get_network, SimCLRLoss, SupContrastiveLoss
 from utils import Meter, cycle_voice, cycle_face, save_model
 from edsr.model import Model
@@ -13,28 +13,48 @@ import cv2
 from einops import rearrange, repeat
 import math
 
+from dataset import VoxCeleb1DataSet, cycle_data
+from torchvision.transforms import transforms
+
+
+os.makedirs(os.path.join(experiment_path, experiment_name), exist_ok=True)
 # dataset and dataloader
+
+
 print('Parsing your dataset...')
-voice_list, face_list, id_class_num = get_dataset(DATASET_PARAMETERS)
-NETWORKS_PARAMETERS['c']['output_channel'] = id_class_num
 
-print('Preparing the datasets...')
-voice_dataset = DATASET_PARAMETERS['voice_dataset'](voice_list,
-                                                    DATASET_PARAMETERS['nframe_range'])
-face_dataset = DATASET_PARAMETERS['face_dataset'](face_list)
 
-print('Preparing the dataloaders...')
-collate_fn = DATASET_PARAMETERS['collate_fn'](DATASET_PARAMETERS['nframe_range'])
-voice_loader = DataLoader(voice_dataset, shuffle=True, drop_last=True,
-                          batch_size=DATASET_PARAMETERS['batch_size'],
-                          num_workers=DATASET_PARAMETERS['workers_num'],
-                          collate_fn=collate_fn)
-face_loader = DataLoader(face_dataset, shuffle=True, drop_last=True,
-                         batch_size=DATASET_PARAMETERS['batch_size'],
-                         num_workers=DATASET_PARAMETERS['workers_num'])
+face_transform = transforms.Compose(
+    [transforms.ToTensor(),
+     transforms.Normalize(0.5, 0.5)]
+)
+voice_trans = transforms.Compose(
+    [
+        torch.tensor
+    ]
+)
+vxc_dataset = VoxCeleb1DataSet(
+    root_path=dataset_config['root_path'],
+    voice_frame=dataset_config['voice_frame'],
+    voice_ext=dataset_config['voice_ext'],
+    img_ext=dataset_config['img_ext'],
+    voice_transform=voice_trans,
+    img_transform=face_transform,
+    sample_num=dataset_config['sample_num']
+)
 
-voice_iterator = iter(cycle_voice(voice_loader))
-face_iterator = iter(cycle_face(face_loader))
+dataset_batch_size = dataset_config['batch_size']*dataset_config['sample_num']
+NETWORKS_PARAMETERS['c']['output_channel'] = vxc_dataset.num_classes
+print(len(vxc_dataset))
+train_loader = DataLoader(
+    vxc_dataset,
+    shuffle=True,
+    batch_size=dataset_config['batch_size'],
+    num_workers=dataset_config['num_workers'],
+    collate_fn=dataset_config['collate_fn']
+)
+
+data_iter = cycle_data(train_loader)
 
 # networks, Fe, Fg, Fd (f+d), Fc (f+c)
 print('Initializing networks...')
@@ -45,12 +65,13 @@ d_net, d_optimizer = get_network('d', NETWORKS_PARAMETERS, train=True)
 c_net, c_optimizer = get_network('c', NETWORKS_PARAMETERS, train=True)
 
 arcface, arcface_optimizer = get_network('arcface', NETWORKS_PARAMETERS, train=False)
-
+arcface.eval()
+print('arcface loadded')
 
 
 # label for real/fake faces
-real_label = torch.full((DATASET_PARAMETERS['batch_size'], 1), 1)
-fake_label = torch.full((DATASET_PARAMETERS['batch_size'], 1), 0)
+real_label = torch.full((dataset_batch_size, 1), 1)
+fake_label = torch.full((dataset_batch_size, 1), 0)
 
 # Meters for recording the training status
 iteration = Meter('Iter', 'sum', ':5d')
@@ -93,16 +114,24 @@ for it in range(50000):
     adjust_learning_rate(optimizer=g_optimizer, epoch=current_epoch, lr=3e-4)
     start_time = time.time()
 
-    voice, voice_label = next(voice_iterator)
-    face, face_label, face_lr = next(face_iterator)
-    noise = 0.05 * torch.randn(DATASET_PARAMETERS['batch_size'], NETWORKS_PARAMETERS['e']['output_channel'], 1, 1)
+    face, voice, label, face_lr = next(data_iter)
 
-    # use GPU or not
-    if NETWORKS_PARAMETERS['GPU']:
-        voice, voice_label = voice.cuda(), voice_label.cuda()
-        face, face_label, face_lr = face.cuda(), face_label.cuda(), face_lr.cuda()
-        real_label, fake_label = real_label.cuda(), fake_label.cuda()
-        noise = noise.cuda()
+
+
+    face = face.cuda()
+    voice = voice.cuda()
+    label = label.cuda()
+    face_lr = face_lr.cuda()
+    # noise = noise.cuda()
+
+
+    # # use GPU or not
+    # if NETWORKS_PARAMETERS['GPU']:
+    #     voice, voice_label = voice.cuda(), voice_label.cuda()
+    #     print(voice.shape)
+    #     face, face_label, face_lr = face.cuda(), face_label.cuda(), face_lr.cuda()
+    #     real_label, fake_label = real_label.cuda(), fake_label.cuda()
+    #     noise = noise.cuda()
 
     data_time.update(time.time() - start_time)
 
@@ -117,8 +146,12 @@ for it in range(50000):
     embeddings = e_net(voice)
     embeddings = F.normalize(embeddings)
     # introduce some permutations
+    noise = 0.05*torch.rand_like(embeddings, device=embeddings.device)
+    # print(embeddings.shape, noise.shape)
     embeddings = embeddings + noise
     embeddings = F.normalize(embeddings)
+    real_label = torch.ones((embeddings.shape[0], 1), device=embeddings.device)
+    fake_label = torch.zeros_like(real_label, device=embeddings.device)
     # print(embeddings.shape)
 
     # loss1 = 0.1*(contrastive_loss(embeddings.squeeze(), face_vector) + contrastive_loss(face_vector, embeddings.squeeze()))
@@ -144,7 +177,7 @@ for it in range(50000):
 
     D_real_loss = F.binary_cross_entropy(torch.sigmoid(real_score_out), real_label.float())
     D_fake_loss = F.binary_cross_entropy(torch.sigmoid(fake_score_out), fake_label.float())
-    C_real_loss = F.nll_loss(F.log_softmax(real_label_out, 1), face_label)
+    C_real_loss = F.nll_loss(F.log_softmax(real_label_out, 1), label)
 
 
     # reconstruction_loss = l1_loss()
@@ -175,13 +208,13 @@ for it in range(50000):
     arcface_loss = l2_loss(F.normalize(arcface_fake_embedding, dim=1), F.normalize(arcface_real_embedding, dim=1))
 
     GD_fake_loss = F.binary_cross_entropy(torch.sigmoid(fake_score_out), real_label.float())
-    GC_fake_loss = 0.5 * F.nll_loss(F.log_softmax(fake_label_out, 1), voice_label)
+    GC_fake_loss = 0.5 * F.nll_loss(F.log_softmax(fake_label_out, 1), label)
     # Embedded_contrastive_loss = 0.5 * sup_contratsive_loss(fake_feature_out, real_feature_out, voice_label)
     # Embedded_contrastive_loss = 0.1 * l2_loss(fake_feature_out, real_feature_out)
     # out_space_loss = 0.1*(0.5*l1_loss(fake_16, lr_16) + 0.5*l1_loss(fake_32, lr_32))
 
     # loss2 = 0.1 * (l1_loss(fake_16, lr_16))
-    # loss3 = 0.1 * (l1_loss(fake_64, lr_64))
+    loss32 = 0.1 * (l1_loss(fake_32, lr_32))
     # # BxCx16x16
     # b, c, h, w = lr_16.shape
     # non_local_lr = lr_16.reshape(b, c, h*w)
@@ -195,7 +228,7 @@ for it in range(50000):
     #
     # loss2 = 0.05 * affine_loss(non_local_fake_prob, non_local_prob)
 
-    (GD_fake_loss + GC_fake_loss + 0.3*reconstruction_loss + arcface_loss).backward()
+    (GD_fake_loss + GC_fake_loss + 0.3*reconstruction_loss + arcface_loss + 0.2*loss32).backward()
     GD_fake.update(GD_fake_loss.item())
     GC_fake.update(GC_fake_loss.item())
     g_optimizer.step()

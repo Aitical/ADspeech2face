@@ -54,5 +54,6 @@ def get_dataset(data_params):
                                   data_params['face_ext'],
                                   celeb_ids,
                                   data_params['split'])
+    # print(len(voice_list), len(face_list))
     return get_labels(voice_list, face_list)
 

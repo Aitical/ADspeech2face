@@ -24,7 +24,7 @@ for filename in tqdm(voice_list):
                             NETWORKS_PARAMETERS['GPU'])
     face = face_image[0]
     wav_file_path, wav_file_name = os.path.split(filename)
-    face_name = wav_file_name.replace('.wav', '_BSE_128.png')
+    face_name = wav_file_name.replace('.wav', '_BSE_arcface_128.png')
     face_path = wav_file_path.replace('voxceleb', 'voxceleb_face')
     os.makedirs(face_path, exist_ok=True)
     vutils.save_image(face.detach().clamp(-1, 1),

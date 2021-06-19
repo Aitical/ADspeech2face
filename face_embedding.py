@@ -106,7 +106,7 @@ def inference_vggface(weight, name, dataloader, save_path):
         targets.extend(labels)
     features = torch.cat(features, dim=0)
     # targets = torch.cat(targets, dim=0)
-    print(features.shape, len(targets))
+    # print(features.shape, len(targets))
     results = {'features': features, 'targets': targets}
     torch.save(results, save_path)
     return results

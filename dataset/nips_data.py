@@ -19,10 +19,12 @@ def load_face(face_item):
     face_label = face_item['label_id']
     return face_data, face_label, face_lr
 
+
 class VoiceDataset(Dataset):
     def __init__(self, voice_list, nframe_range):
         self.voice_list = voice_list
         self.crop_nframe = nframe_range[1]
+        print(self.crop_nframe)
 
     def __getitem__(self, index):
         voice_data, voice_label = load_voice(self.voice_list[index])

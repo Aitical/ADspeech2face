@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import numpy as np
 import torch.optim as optim
 
+
 class VoiceEmbedNet(nn.Module):
     def __init__(self, input_channel, channels, output_channel):
         super(VoiceEmbedNet, self).__init__()
@@ -305,9 +306,20 @@ def get_network(net_type, params, train=True):
     else:
         net.eval()
         net.load_state_dict(torch.load(net_params['model_path']))
-        optimizer = None
+        for p in net.parameters():
+            p.requires_grad = False
+
+        if net_type == 'arcface':
+            optimizer = optim.Adam(net.parameters(),
+                                   lr=params['lr'],
+                                   betas=(params['beta1'], params['beta2']))
+        else:
+            optimizer = None
+
     return net, optimizer
+
+
 if __name__ == '__main__':
-    model = DenseGenerator(64,[128, 128, 128, 128, 128], 3)
+    model = DenseGenerator(64, [128, 128, 128, 128, 128], 3)
     a = torch.rand(16, 64, 1, 1)
     f = model(a)

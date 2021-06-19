@@ -1,39 +1,25 @@
-import string
-from dataset import VoiceDataset, FaceDataset
 from network import VoiceEmbedNet, Generator, FaceEmbedNet, Classifier, BasicGenerator, BSEGenerator, LightG
-from utils import get_collate_fn
+from dataset import voxceleb1_collate_fn
 from backbones import iresnet34
 
 
-
-DATASET_PARAMETERS = {
-    # meta data provided by voxceleb1 dataset
-    'meta_file': 'data/vox1_meta.csv',
-
+dataset_config = {
+    'root_path': '/home/aitical/data/voxceleb/voxceleb/train',
     # voice dataset
-    'voice_dir': '/home/aitical/data4t/voxceleb/voxceleb/fbank',
     'voice_ext': 'npy',
-
-    # face dataset
-    'face_dir': '/home/aitical/data4t/voxceleb/voxceleb/VGG_ALL_FRONTAL',
-    'face_ext': '.jpg',
-
-    # train data includes the identities
-    # whose names start with the characters of 'FGH...XYZ' 
-    'split': string.ascii_uppercase[5:],
-
-    # dataloader
-    'voice_dataset': VoiceDataset,
-    'face_dataset': FaceDataset,
-    'batch_size': 128,
-    'nframe_range': [300, 800],
-    'workers_num': 1,
-    'collate_fn': get_collate_fn,
-
+    'img_ext': 'jpg',
+    'batch_size': 32,
+    'voice_frame': [300, 600],
+    'num_workers': 4,
+    'collate_fn': voxceleb1_collate_fn,
+    'sample_num': 4,
     # test data
-    'test_data': '/home/aitical/data4t2/voxceleb/test'
+    'test_path': '/home/aitical/data/voxceleb/voxceleb/test'
 }
 
+
+experiment_name = 'BSE_32_4'
+experiment_path = './experiments'
 
 NETWORKS_PARAMETERS = {
     # VOICE EMBEDDING NETWORK (e)
@@ -46,11 +32,11 @@ NETWORKS_PARAMETERS = {
     },
     # GENERATOR (g)
     'g': {
-        'network': LightG,
+        'network': BSEGenerator,
         'input_channel': 64,
         'channels': [1024, 512, 256, 128, 64],  # channels for deconvolutional layers
         'output_channel': 3,  # images with RGB channels
-        'model_path': './experiments/arcface/generator_l1_edsr_16_64.pth',
+        'model_path': f'./experiments/{experiment_name}/generator_l1_edsr_16_64.pth',
     },
     # FACE EMBEDDING NETWORK (f)
     'f': {
@@ -58,7 +44,7 @@ NETWORKS_PARAMETERS = {
         'input_channel': 3,
         'channels': [32, 64, 128, 256, 512],
         'output_channel': 64,
-        'model_path': './experiments/arcface/face_embedding.pth',
+        'model_path': f'./experiments/{experiment_name}/face_embedding.pth',
     },
     # DISCRIMINATOR (d)
     'd': {
@@ -66,7 +52,7 @@ NETWORKS_PARAMETERS = {
         'input_channel': 64,
         'channels': [],
         'output_channel': 1,
-        'model_path': './experiments/arcface/discriminator.pth',
+        'model_path': f'./experiments/{experiment_name}/discriminator.pth',
     },
     # CLASSIFIER (c)
     'c': {
@@ -74,7 +60,7 @@ NETWORKS_PARAMETERS = {
         'input_channel': 64,
         'channels': [],
         'output_channel': -1,  # This parameter is depended on the dataset we used
-        'model_path': './experiments/arcface/classifier.pth',
+        'model_path': f'./experiments/{experiment_name}/classifier.pth',
     },
 
     'arcface': {

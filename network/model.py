@@ -2,7 +2,7 @@ import torch
 from torch import nn, einsum
 import torch.nn.functional as F
 from einops import rearrange, reduce, repeat
-from kornia import filter2d
+from kornia.filters.filter import filter2D as filter2d
 
 
 class GlobalContext(nn.Module):
@@ -53,11 +53,11 @@ class Blur(nn.Module):
 
 
 class Upsample(nn.Module):
-    def __init__(self,chan_in, chan_out, scale_factor=2):
+    def __init__(self, chan_in, chan_out, scale_factor=2):
         super(Upsample, self).__init__()
         self.up = nn.Sequential(
-            nn.Upsample(scale_factor),
-            Blur(),
+            nn.Upsample(scale_factor=scale_factor),
+            # Blur(),
             nn.Conv2d(chan_in, chan_out * 2, 3, padding=1),
             nn.BatchNorm2d(chan_out * 2),
             nn.GLU(dim=1)
@@ -147,40 +147,48 @@ class LightG(nn.Module):
         self.model = nn.Sequential(
             nn.ConvTranspose2d(input_channel, channels[0], 4, 1, 0, bias=True),
             nn.BatchNorm2d(channels[0]),
+            nn.ConvTranspose2d(channels[0], channels[0]*2, kernel_size=(1, 1),),
             nn.GLU(dim=1),)
 
         self.up1 = Upsample(chan_in=channels[0], chan_out=channels[1], scale_factor=2)
-        self.up2 = Upsample(chan_in=channels[1], chan_out=channels[1])
+        self.up2 = Upsample(chan_in=channels[1], chan_out=channels[2])
 
-        self.up3 = Upsample(chan_in=channels[1], chan_out=channels[2])
+        self.up3 = Upsample(chan_in=channels[2], chan_out=channels[3])
 
-        self.up4 = Upsample(chan_in=channels[2], chan_out=channels[3])
+        self.up4 = Upsample(chan_in=channels[3], chan_out=channels[3])
         self.up5 = Upsample(chan_in=channels[3], chan_out=channels[4])
 
         self.to_rgb = nn.Sequential(
-            nn.Conv2d(channels[4], channels[4], kernel_size=(3, 3), padding=(1, 1)),
-            nn.BatchNorm2d(channels[4]),
+            nn.Conv2d(channels[4], channels[4]*2, kernel_size=(1, 1),),
+            nn.BatchNorm2d(channels[4]*2),
             nn.GLU(dim=1),
             nn.Conv2d(channels[4], out_channels=output_channel, kernel_size=(3, 3), padding=(1, 1))
         )
 
         self.se1 = GlobalContext(chan_in=channels[1], chan_out=channels[3])
-        self.se2 = GlobalContext(chan_in=channels[1], chan_out=channels[4])
+        self.se2 = GlobalContext(chan_in=channels[2], chan_out=channels[4])
 
     def forward(self, x):
         x = self.model(x)
+        # print(x.shape)
         x1 = self.up1(x)
+        # print(x1.shape)
         se1 = self.se1(x1)
-
+        # print('se1', se1.shape)
         x2 = self.up2(x1)
+        # print(x2.shape, 'x2')
         se2 = self.se2(x2)
+        # print(se2.shape, 'se2')
         x3 = self.up3(x2)
-        x4 = self.up4(x3*se1)
-        x5 = self.up5(x4*se2)
+        # print(x3.shape, 'x3')
+        x4 = self.up4(x3)
+        # print(x4.shape, 'x4')
+        x5 = self.up5(x4*se1)
+        # print(x5.shape, 'x5')
 
-        out = self.to_rgb(x5)
-
-        return out
+        out = self.to_rgb(x5*se2)
+        # print(out.shape)
+        return out, x2, x3, x4
 
 
 class BasicGenerator(nn.Module):
@@ -350,3 +358,10 @@ class BSEGenerator(nn.Module):
         x6_se = x6*se_16to128
         x = self.to_rgb(x6_se)
         return x, x3, x4, x5
+
+
+if __name__ == '__main__':
+    a = torch.rand(16, 32, 4, 4)
+    up = Upsample(32, 16, 2)
+    b = up(a)
+    print(b.shape)
