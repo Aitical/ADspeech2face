@@ -1,4 +1,4 @@
-from network import VoiceEmbedNet, Generator, FaceEmbedNet, Classifier, BasicGenerator, BSEGenerator, LightG
+from network import VoiceEmbedNet, Generator, FaceEmbedNet, Classifier, BasicGenerator, BSEGenerator, LightG, ResD
 from dataset import voxceleb1_collate_fn
 from backbones import iresnet34
 
@@ -12,13 +12,13 @@ dataset_config = {
     'voice_frame': [300, 600],
     'num_workers': 4,
     'collate_fn': voxceleb1_collate_fn,
-    'sample_num': 4,
+    'sample_num': 1,
     # test data
     'test_path': '/home/aitical/data/voxceleb/voxceleb/test'
 }
 
 
-experiment_name = 'BSE_32_4'
+experiment_name = 'LightG_ResD'
 experiment_path = './experiments'
 
 NETWORKS_PARAMETERS = {
@@ -32,7 +32,7 @@ NETWORKS_PARAMETERS = {
     },
     # GENERATOR (g)
     'g': {
-        'network': BSEGenerator,
+        'network': LightG,
         'input_channel': 64,
         'channels': [1024, 512, 256, 128, 64],  # channels for deconvolutional layers
         'output_channel': 3,  # images with RGB channels
@@ -42,7 +42,7 @@ NETWORKS_PARAMETERS = {
     'f': {
         'network': FaceEmbedNet,
         'input_channel': 3,
-        'channels': [32, 64, 128, 256, 512],
+        'channels': [256, 256, 256, 128, 64],
         'output_channel': 64,
         'model_path': f'./experiments/{experiment_name}/face_embedding.pth',
     },
