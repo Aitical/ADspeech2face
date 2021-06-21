@@ -73,7 +73,7 @@ NETWORKS_PARAMETERS = {
     'lr': 0.0002,
     'beta1': 0.5,
     'beta2': 0.999,
-
+    'multi_gpu': True,
     # MODE, use GPU or not
     'GPU': True,
 }
