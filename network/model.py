@@ -360,8 +360,109 @@ class BSEGenerator(nn.Module):
         return x, x3, x4, x5
 
 
+class ResModule(nn.Module):
+    def __init__(self, input_channel, output_channel):
+        super(ResModule, self).__init__()
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(input_channel, input_channel, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1)),
+            nn.LeakyReLU(0.1),
+            nn.Conv2d(input_channel, output_channel, kernel_size=(3, 3), padding=(1, 1)),
+            nn.BatchNorm2d(output_channel),
+            nn.LeakyReLU(0.1),
+        )
+        self.avg = nn.Sequential(
+            nn.AvgPool2d(kernel_size=(2, 2)),
+            nn.Conv2d(input_channel, output_channel, kernel_size=(1, 1)),
+            nn.BatchNorm2d(output_channel),
+            nn.LeakyReLU(0.1),
+        )
+
+    def forward(self, x):
+        x1 = self.conv1(x)
+        x2 = self.avg(x)
+        return x1+x2
+
+
+class SimpleDecoder(nn.Module):
+    def __init__(self, input_channel, output_channel):
+        super(SimpleDecoder, self).__init__()
+        self.conv1 = nn.Sequential(
+            nn.Upsample(scale_factor=2),
+            nn.Conv2d(input_channel, output_channel*2, kernel_size=(3, 3), padding=(1, 1)),
+            nn.BatchNorm2d(output_channel*2),
+            nn.GLU(dim=1)
+        )
+        self.conv2 = nn.Sequential(
+            nn.Upsample(scale_factor=2),
+            nn.Conv2d(output_channel, output_channel*2, kernel_size=(3, 3), padding=(1, 1)),
+            nn.BatchNorm2d(output_channel*2),
+            nn.GLU(dim=1)
+        )
+        self.conv3 = nn.Sequential(
+            nn.Upsample(scale_factor=2),
+            nn.Conv2d(output_channel, output_channel*2, kernel_size=(3, 3), padding=(1, 1)),
+            nn.BatchNorm2d(output_channel*2),
+            nn.GLU(dim=1)
+        )
+
+        self.to_rgb = nn.Sequential(
+            nn.Conv2d(output_channel, 3, kernel_size=(1, 1))
+        )
+
+    def forward(self, x):
+        x1 = self.conv1(x)
+        x2 = self.conv2(x1)
+        x3 = self.conv3(x2)
+        out = self.to_rgb(x3)
+        return out
+
+
+class ResD(nn.Module):
+    def __init__(self, input_channel, channels,):
+        super().__init__()
+
+        self.res64 = ResModule(input_channel, channels[0])
+        self.res32 = ResModule(channels[0], channels[1])
+        self.res16 = ResModule(channels[1], channels[2])
+        self.res8 = ResModule(channels[2], channels[3])
+
+        self.latent = nn.Sequential(
+            nn.Conv2d(channels[3], channels[4], kernel_size=(4, 4)),
+            nn.BatchNorm2d(channels[4]),
+            nn.LeakyReLU(0.1),
+            nn.Conv2d(channels[4], 1, kernel_size=(1, 1)),
+            nn.LeakyReLU(0.1),
+        )
+        self.to_logits = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(25, 1)
+        )
+        self.decoder = SimpleDecoder(channels[2], channels[2])
+
+    def forward(self, x):
+        x64 = self.res64(x)
+        x32 = self.res32(x64)
+        x16 = self.res16(x32)
+
+        x8 = self.res8(x16)
+        latent = self.latent(x8)
+        logits = self.to_logits(latent)
+
+        out = self.decoder(x16)
+
+        return logits, out
+
+def dual_contrastive_loss(real_logits, fake_logits):
+    device = real_logits.device
+    real_logits, fake_logits = map(lambda t: rearrange(t, '... -> (...)'), (real_logits, fake_logits))
+
+    def loss_half(t1, t2):
+        t1 = rearrange(t1, 'i -> i ()')
+        t2 = repeat(t2, 'j -> i j', i = t1.shape[0])
+        t = torch.cat((t1, t2), dim = -1)
+        return F.cross_entropy(t, torch.zeros(t1.shape[0], device = device, dtype = torch.long))
+
+    return loss_half(real_logits, fake_logits) + loss_half(-fake_logits, -real_logits)
+
 if __name__ == '__main__':
-    a = torch.rand(16, 32, 4, 4)
-    up = Upsample(32, 16, 2)
-    b = up(a)
-    print(b.shape)
+    pass

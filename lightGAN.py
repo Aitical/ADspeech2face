@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from config import dataset_config, NETWORKS_PARAMETERS, experiment_name, experiment_path
+from config.lightg import dataset_config, NETWORKS_PARAMETERS, experiment_name, experiment_path
 # from parse_dataset import get_dataset
 from network import get_network, SimCLRLoss, SupContrastiveLoss, ResD, dual_contrastive_loss
 from utils import Meter, cycle_voice, cycle_face, save_model
@@ -97,7 +97,7 @@ current_epoch = 1
 def adjust_learning_rate(optimizer, epoch, lr=0.1):
     """Decay the learning rate based on schedule"""
     # cosine lr schedule
-    lr *= 0.5 * (1. + math.cos(math.pi * epoch / 400))
+    lr *= 0.5 * (1. + math.cos(math.pi * epoch / 1000))
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
     # wandb.log({'lr': lr, 'epoch': epoch})

@@ -14,11 +14,11 @@ dataset_config = {
     'collate_fn': voxceleb1_collate_fn,
     'sample_num': 1,
     # test data
-    'test_path': '/home/aitical/data/voxceleb/voxceleb/test'
+    'test_path': '/home/aitical/data4t2/voxceleb/test'
 }
 
 
-experiment_name = 'LightG_ResD'
+experiment_name = 'BSE_32_4'
 experiment_path = './experiments'
 
 NETWORKS_PARAMETERS = {
@@ -32,7 +32,7 @@ NETWORKS_PARAMETERS = {
     },
     # GENERATOR (g)
     'g': {
-        'network': LightG,
+        'network': BSEGenerator,
         'input_channel': 64,
         'channels': [1024, 512, 256, 128, 64],  # channels for deconvolutional layers
         'output_channel': 3,  # images with RGB channels

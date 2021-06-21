@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 
 from torch.utils.data import DataLoader
-from config import dataset_config, NETWORKS_PARAMETERS, experiment_name, experiment_path
+from config.nips import dataset_config, NETWORKS_PARAMETERS, experiment_name, experiment_path
 # from parse_dataset import get_dataset
 from network import get_network, SimCLRLoss, SupContrastiveLoss
 from utils import Meter, cycle_voice, cycle_face, save_model
@@ -168,12 +168,13 @@ for it in range(100000):
     real_score_out = d_net(f_net(face))
     fake_score_out = d_net(f_net(fake.detach()))
     real_label_out = c_net(f_net(face))
-    clip_feature = F.normalize(f_net(face).squeeze())
-    #  print(clip_feature.shape, embeddings.shape)
-    #
+    # clip_feature = F.normalize(f_net(face).squeeze())
+    # #  print(clip_feature.shape, embeddings.shape)
+    # #
     # F_clip_loss = 0.1 * 0.5*(contrastive_loss(clip_feature, embeddings.squeeze().detach()) + contrastive_loss(embeddings.squeeze().detach(), clip_feature))
     # clip_fake_feature = F.normalize(f_net(fake.detach()).squeeze())
-    # F_clip_contrastive = 0.3 * contrastive_loss(clip_fake_feature, clip_feature)
+    # F_clip_contrastive = 0.3 * sup_contratsive_loss(clip_fake_feature, clip_feature, label)
+
 
     D_real_loss = F.binary_cross_entropy(torch.sigmoid(real_score_out), real_label.float())
     D_fake_loss = F.binary_cross_entropy(torch.sigmoid(fake_score_out), fake_label.float())
@@ -185,7 +186,8 @@ for it in range(100000):
     D_real.update(D_real_loss.item())
     D_fake.update(D_fake_loss.item())
     C_real.update(C_real_loss.item())
-    (D_real_loss + D_fake_loss + C_real_loss).backward()
+    (D_real_loss + D_fake_loss + C_real_loss ).backward()
+
     f_optimizer.step()
     d_optimizer.step()
     c_optimizer.step()
@@ -251,8 +253,8 @@ for it in range(100000):
         # snapshot
         save_model(g_net, NETWORKS_PARAMETERS['g']['model_path'])
         # save_model(e_net, NETWORKS_PARAMETERS['e']['model_path'])
-        save_model(f_net, NETWORKS_PARAMETERS['f']['model_path'])
-        save_model(d_net, NETWORKS_PARAMETERS['d']['model_path'])
-        save_model(c_net, NETWORKS_PARAMETERS['c']['model_path'])
+        # save_model(f_net, NETWORKS_PARAMETERS['f']['model_path'])
+        # save_model(d_net, NETWORKS_PARAMETERS['d']['model_path'])
+        # save_model(c_net, NETWORKS_PARAMETERS['c']['model_path'])
     iteration.update(1)
 

@@ -109,7 +109,7 @@ affine_loss = torch.nn.KLDivLoss().cuda()
 contrastive_loss = SimCLRLoss(temperature=0.2).cuda()
 sup_contratsive_loss = SupContrastiveLoss().cuda()
 print('Training models...')
-for it in range(50000):
+for it in range(100000):
     # data
     adjust_learning_rate(optimizer=g_optimizer, epoch=current_epoch, lr=3e-4)
     start_time = time.time()
