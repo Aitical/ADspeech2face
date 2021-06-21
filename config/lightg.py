@@ -1,6 +1,6 @@
 from network import VoiceEmbedNet, Generator, FaceEmbedNet, Classifier, BasicGenerator, BSEGenerator, LightG, ResD
 from dataset import voxceleb1_collate_fn
-from backbones import iresnet34
+from arcface import arcface
 
 
 dataset_config = {
@@ -32,7 +32,7 @@ NETWORKS_PARAMETERS = {
     },
     # GENERATOR (g)
     'g': {
-        'network': BSEGenerator,
+        'network': LightG,
         'input_channel': 64,
         'channels': [1024, 512, 256, 128, 64],  # channels for deconvolutional layers
         'output_channel': 3,  # images with RGB channels
@@ -64,9 +64,9 @@ NETWORKS_PARAMETERS = {
     },
 
     'arcface': {
-        'network': iresnet34,
+        'network': arcface,
         'fp16': False,
-        'model_path': './pretrained_models/arc_face_model/backbone.pth'
+        'model_path': './pretrained_models/arc_face_model/arcface_resnet18.pth'
     },
 
     # OPTIMIZER PARAMETERS 

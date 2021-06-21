@@ -308,11 +308,6 @@ def get_network(net_type, params, train=True):
         net.load_state_dict(torch.load(net_params['model_path']))
         for p in net.parameters():
             p.requires_grad = False
-
-        if net_type == 'arcface':
-            optimizer = optim.Adam(net.parameters(),
-                                   lr=params['lr'],
-                                   betas=(params['beta1'], params['beta2']))
         else:
             optimizer = None
 

@@ -97,9 +97,9 @@ class LinearAttention(nn.Module):
         return self.to_out(out)
 
 
-class ConditionAttention(nn.Module):
+class LinearConditionAttention(nn.Module):
     def __init__(self, in_channel, out_channel, hidden_channel=None):
-        super(ConditionAttention, self).__init__()
+        super(LinearConditionAttention, self).__init__()
         if hidden_channel is None:
             hidden_channel = in_channel
         self.conv1 = nn.Sequential(
@@ -119,26 +119,30 @@ class ConditionAttention(nn.Module):
         return out
 
 
-class ConditionAttenLayer(nn.Module):
-    def __init__(self, in_channel, out_channel, hidden_channel=None):
-        super(ConditionAttenLayer, self).__init__()
+class ConditionAttentionLayer(nn.Module):
+    def __init__(self, in_channel, hidden_channel=None):
+        super(ConditionAttentionLayer, self).__init__()
         if hidden_channel is None:
-            hidden_channel = in_channel * 2
-        self.conv1 = nn.Sequential(
-            nn.Conv2d(in_channel, hidden_channel, kernel_size=(1, 1)),
-            nn.ReLU())
-        self.conv2 = nn.Sequential(
-            nn.Conv2d(hidden_channel, out_channel, kernel_size=(3, 3), padding=(1, 1)),
+            hidden_channel = in_channel*2
+        self.conv = nn.Sequential(
+            nn.Conv2d(in_channels=in_channel, out_channels=256, kernel_size=(1, 1)),
             nn.ReLU()
         )
+
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(512, hidden_channel, kernel_size=(1, 1)),
+            nn.ReLU(),
+            nn.Conv2d(in_channels=hidden_channel, out_channels=in_channel, kernel_size=(1, 1))
+        )
+
     def forward(self, x, condition):
         # Bxcx1x1, Bxcxhxw
-        x = self.conv1(x)
-        p = F.normalize(x, dim=1)
-        # Bx1xhxw
-        atten_map = F.sigmoid(torch.sum(p*condition, dim=1)).unsqueeze(1)
-        out = self.conv2(x*atten_map)
-        return out
+        b, c, h, w = x.shape
+        condition = condition.repeat(1, 1, h, w)
+        x1 = self.conv(x)
+        # condition = self.conv(condition)
+        out = self.conv1(torch.cat([x1, condition], dim=1))
+        return out+x
 
 
 class LightG(nn.Module):
@@ -230,6 +234,85 @@ class BasicGenerator(nn.Module):
         return x, x3, x4, x5
 
 
+class UpConv(nn.Module):
+    def __init__(self, in_channel, out_channel):
+        super(UpConv, self).__init__()
+        self.up = nn.Sequential(
+            nn.UpsamplingBilinear2d(scale_factor=2),
+            nn.Conv2d(in_channels=in_channel, out_channels=out_channel, kernel_size=(3, 3), padding=(1, 1)),
+            nn.BatchNorm2d(out_channel),
+            nn.LeakyReLU(0.1)
+        )
+    def forward(self, x):
+        out = self.up(x)
+        return out
+
+
+class ResUpConv(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(ResUpConv, self).__init__()
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(in_channels=in_channels, out_channels=in_channels*4, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.PixelShuffle(2),
+            nn.LeakyReLU(0.1),
+            nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=(3, 3), padding=(1, 1)),
+            nn.BatchNorm2d(out_channels),
+            nn.LeakyReLU(0.1),
+        )
+        self.conv2 = UpConv(in_channel=in_channels, out_channel=out_channels)
+        self.conv = DepthWiseConv2d(out_channels, out_channels, kernel_size=3, padding=1)
+
+    def forward(self, x):
+        x1 = self.conv1(x)
+        x2 = self.conv2(x)
+        # print(x1.shape, x2.shape)
+        out = self.conv(x1+x2)
+        return out
+
+
+class ResG(nn.Module):
+    def __init__(self, input_channel, channels, output_channel):
+        super().__init__()
+        self.model = nn.Sequential(
+            nn.Conv2d(in_channels=input_channel, out_channels=128, bias=False, kernel_size=(1, 1)),
+            nn.LeakyReLU(0.1),
+            nn.Conv2d(in_channels=128, out_channels=256, bias=False, kernel_size=(1, 1)),
+            nn.LeakyReLU(0.1),
+            nn.Conv2d(in_channels=256, out_channels=256, bias=False, kernel_size=(1, 1)),
+            nn.LeakyReLU(0.1),
+            )
+        self.up1 = nn.Sequential(
+            nn.ConvTranspose2d(256, channels[0], 4, 1, 0, bias=True),
+            nn.ReLU(),
+        )
+        self.up2 = ResUpConv(in_channels=channels[0], out_channels=channels[1])
+        self.up3 = ResUpConv(in_channels=channels[1], out_channels=channels[2])
+        self.ca1 = ConditionAttentionLayer(in_channel=channels[2])
+        self.up4 = ResUpConv(in_channels=channels[2], out_channels=channels[3])
+        self.up5 = ResUpConv(in_channels=channels[3], out_channels=channels[3])
+        self.ca2 = ConditionAttentionLayer(in_channel=channels[3])
+        self.up6 = ResUpConv(in_channels=channels[3], out_channels=channels[4])
+
+        self.to_rgb = nn.Sequential(
+            nn.Conv2d(channels[4], output_channel, 1, 1, 0, bias=True),
+        )
+
+    def forward(self, x):
+        # Bx64x1x1
+        c = self.model(x)
+        x1 = self.up1(c)
+        x2 = self.up2(x1)
+        x3 = self.up3(x2)
+        # print(x3.shape, c.shape)
+        x3 = self.ca1(x3, c)
+        x4 = self.up4(x3)
+        x5 = self.up5(x4)
+        x5 = self.ca2(x5, c)
+        x6 = self.up6(x5)
+        x = self.to_rgb(x6)
+        return x, x3, x4, x5
+
+
 class UpSampleModule(nn.Module):
     def __init__(self, in_channel, out_channel):
         super().__init__()
@@ -278,26 +361,11 @@ class BSEGenerator(nn.Module):
             nn.ReLU(),
             nn.Sigmoid()
         )
-        self.se8to128 = nn.Sequential(
-            nn.AdaptiveAvgPool2d(1),
-            nn.Conv2d(in_channels=channels[1], out_channels=channels[1]*2,kernel_size=(1, 1), bias=False),
-            nn.ReLU(),
-            nn.Conv2d(channels[1]*2, channels[4], kernel_size=(1, 1)),
-            nn.ReLU(),
-            nn.Sigmoid()
-        )
+
         self.up3 = nn.Sequential(
             nn.ConvTranspose2d(channels[1], channels[2], 4, 2, 1, bias=True),
             nn.ReLU(),)
 
-        self.se16to64 = nn.Sequential(
-            nn.AdaptiveAvgPool2d(1),
-            nn.Conv2d(in_channels=channels[2], out_channels=channels[2]*2,kernel_size=(1, 1), bias=False),
-            nn.ReLU(),
-            nn.Conv2d(channels[2]*2, channels[3], kernel_size=(1, 1)),
-            nn.ReLU(),
-            nn.Sigmoid()
-        )
         self.se16to128 = nn.Sequential(
             nn.AdaptiveAvgPool2d(4),
             nn.Conv2d(in_channels=channels[2], out_channels=channels[2]*2,kernel_size=(4, 4), bias=False),
@@ -309,22 +377,7 @@ class BSEGenerator(nn.Module):
         self.up4 = nn.Sequential(
             nn.ConvTranspose2d(channels[2], channels[3], 4, 2, 1, bias=True),
             nn.ReLU(),)
-        self.se32to64 = nn.Sequential(
-            nn.AdaptiveAvgPool2d(1),
-            nn.Conv2d(in_channels=channels[3], out_channels=channels[3]*2,kernel_size=(1, 1), bias=False),
-            nn.ReLU(),
-            nn.Conv2d(channels[3]*2, channels[3], kernel_size=(1, 1)),
-            nn.ReLU(),
-            nn.Sigmoid()
-        )
-        self.se32to128 = nn.Sequential(
-            nn.AdaptiveAvgPool2d(1),
-            nn.Conv2d(in_channels=channels[3], out_channels=channels[3]*2,kernel_size=(1, 1), bias=False),
-            nn.ReLU(),
-            nn.Conv2d(channels[3]*2, channels[4], kernel_size=(1, 1)),
-            nn.ReLU(),
-            nn.Sigmoid()
-        )
+
         self.up5 = nn.Sequential(
             nn.ConvTranspose2d(channels[3], channels[3], 4, 2, 1, bias=True),
             nn.ReLU()
@@ -360,9 +413,9 @@ class BSEGenerator(nn.Module):
         return x, x3, x4, x5
 
 
-class ResModule(nn.Module):
+class ResDownConv(nn.Module):
     def __init__(self, input_channel, output_channel):
-        super(ResModule, self).__init__()
+        super(ResDownConv, self).__init__()
         self.conv1 = nn.Sequential(
             nn.Conv2d(input_channel, input_channel, kernel_size=(4, 4), stride=(2, 2), padding=(1, 1)),
             nn.LeakyReLU(0.1),
@@ -387,19 +440,19 @@ class SimpleDecoder(nn.Module):
     def __init__(self, input_channel, output_channel):
         super(SimpleDecoder, self).__init__()
         self.conv1 = nn.Sequential(
-            nn.Upsample(scale_factor=2),
+            nn.UpsamplingBilinear2d(scale_factor=2),
             nn.Conv2d(input_channel, output_channel*2, kernel_size=(3, 3), padding=(1, 1)),
             nn.BatchNorm2d(output_channel*2),
             nn.GLU(dim=1)
         )
         self.conv2 = nn.Sequential(
-            nn.Upsample(scale_factor=2),
+            nn.UpsamplingBilinear2d(scale_factor=2),
             nn.Conv2d(output_channel, output_channel*2, kernel_size=(3, 3), padding=(1, 1)),
             nn.BatchNorm2d(output_channel*2),
             nn.GLU(dim=1)
         )
         self.conv3 = nn.Sequential(
-            nn.Upsample(scale_factor=2),
+            nn.UpsamplingBilinear2d(scale_factor=2),
             nn.Conv2d(output_channel, output_channel*2, kernel_size=(3, 3), padding=(1, 1)),
             nn.BatchNorm2d(output_channel*2),
             nn.GLU(dim=1)
@@ -421,36 +474,32 @@ class ResD(nn.Module):
     def __init__(self, input_channel, channels,):
         super().__init__()
 
-        self.res64 = ResModule(input_channel, channels[0])
-        self.res32 = ResModule(channels[0], channels[1])
-        self.res16 = ResModule(channels[1], channels[2])
-        self.res8 = ResModule(channels[2], channels[3])
+        self.res64 = ResDownConv(input_channel, channels[0])
+        self.res32 = ResDownConv(channels[0], channels[1])
+        self.res16 = ResDownConv(channels[1], channels[2])
+        self.res8 = ResDownConv(channels[2], channels[3])
 
-        self.latent = nn.Sequential(
+        self.to_logits = nn.Sequential(
             nn.Conv2d(channels[3], channels[4], kernel_size=(4, 4)),
             nn.BatchNorm2d(channels[4]),
             nn.LeakyReLU(0.1),
             nn.Conv2d(channels[4], 1, kernel_size=(1, 1)),
-            nn.LeakyReLU(0.1),
-        )
-        self.to_logits = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(25, 1)
+            nn.Flatten()
         )
         self.decoder = SimpleDecoder(channels[2], channels[2])
 
-    def forward(self, x):
+    def forward(self, x, ):
         x64 = self.res64(x)
         x32 = self.res32(x64)
         x16 = self.res16(x32)
 
         x8 = self.res8(x16)
-        latent = self.latent(x8)
-        logits = self.to_logits(latent)
+        logits = self.to_logits(x8)
 
         out = self.decoder(x16)
 
         return logits, out
+
 
 def dual_contrastive_loss(real_logits, fake_logits):
     device = real_logits.device
@@ -464,5 +513,14 @@ def dual_contrastive_loss(real_logits, fake_logits):
 
     return loss_half(real_logits, fake_logits) + loss_half(-fake_logits, -real_logits)
 
+def gen_hinge_loss(fake, real):
+    return fake.mean()
+
+def hinge_loss(real, fake):
+    return (F.relu(1 + real) + F.relu(1 - fake)).mean()
+
 if __name__ == '__main__':
-    pass
+    a = torch.rand(3, 64, 1, 1)
+    m = ResG(64, [1024, 512, 256, 128, 64], 3)
+    b = m(a)
+    print(b[0].shape)
