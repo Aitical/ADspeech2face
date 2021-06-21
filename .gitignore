@@ -11,6 +11,7 @@ data/
 *.pth
 experiments/
 
+config/config254.py
 # Distribution / packaging
 .Python
 build/
