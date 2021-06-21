@@ -295,20 +295,22 @@ def get_network(net_type, params, train=True):
                                     net_params['channels'],
                                     net_params['output_channel'])
 
-    if params['GPU']:
-        if params['multi_gpu']:
-            net = torch.nn.DataParallel(net)
-        net.cuda()
-
     if train:
         net.train()
+        if params['GPU']:
+            if params['multi_gpu']:
+                net = torch.nn.DataParallel(net)
+            net.cuda()
         optimizer = optim.Adam(net.parameters(),
                                lr=params['lr'],
                                betas=(params['beta1'], params['beta2']))
     else:
         net.eval()
         net.load_state_dict(torch.load(net_params['model_path']))
-
+        if params['GPU']:
+            if params['multi_gpu']:
+                net = torch.nn.DataParallel(net)
+            net.cuda()
         for p in net.parameters():
             p.requires_grad = False
 
