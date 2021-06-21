@@ -61,19 +61,27 @@ e_net, e_optimizer = get_network('e', NETWORKS_PARAMETERS, train=False)
 g_net, g_optimizer = get_network('g', NETWORKS_PARAMETERS, train=True)
 
 d_net = ResD(NETWORKS_PARAMETERS['f']['input_channel'], NETWORKS_PARAMETERS['f']['channels'])
+if NETWORKS_PARAMETERS['multi_gpu']:
+    d_net = torch.nn.DataParallel(d_net)
 d_net.cuda()
 d_optimizer = optim.Adam(d_net.parameters(),
                                lr=NETWORKS_PARAMETERS['lr'],
                                betas=(NETWORKS_PARAMETERS['beta1'],NETWORKS_PARAMETERS['beta2']))
+sr_model = Model('./pretrained_models/edsr_model/model_best.pt')
+sr_model = sr_model.model.eval()
+for param in sr_model.model.parameters():
+    param.requires_grad = False
 
+if NETWORKS_PARAMETERS['multi_gpu']:
+    sr_model = torch.nn.DataParallel(sr_model)
+sr_model.cuda()
+print('SR model loaded')
 # f_net, f_optimizer = get_network('f', NETWORKS_PARAMETERS, train=True)
 # d_net, d_optimizer = get_network('d', NETWORKS_PARAMETERS, train=True)
 # c_net, c_optimizer = get_network('c', NETWORKS_PARAMETERS, train=True)
 
 arcface, arcface_optimizer = get_network('arcface', NETWORKS_PARAMETERS, train=False)
-
 print('arcface loadded')
-
 
 # label for real/fake faces
 real_label = torch.full((dataset_batch_size, 1), 1)
@@ -101,14 +109,9 @@ def adjust_learning_rate(optimizer, epoch, lr=2e-3):
     # wandb.log({'lr': lr, 'epoch': epoch})
 
 
-sr_model = Model('./pretrained_models/edsr_model/model_best.pt')
-sr_model.model.eval()
 
-for param in sr_model.model.parameters():
-    param.requires_grad = False
 
-sr_model.cuda()
-print('SR model loaded')
+
 l1_loss = torch.nn.L1Loss().cuda()
 l2_loss = torch.nn.MSELoss().cuda()
 affine_loss = torch.nn.KLDivLoss().cuda()

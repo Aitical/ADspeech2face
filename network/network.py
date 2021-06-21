@@ -296,6 +296,8 @@ def get_network(net_type, params, train=True):
                                     net_params['output_channel'])
 
     if params['GPU']:
+        if params['multi_gpu']:
+            net = torch.nn.DataParallel(net)
         net.cuda()
 
     if train:
@@ -306,6 +308,7 @@ def get_network(net_type, params, train=True):
     else:
         net.eval()
         net.load_state_dict(torch.load(net_params['model_path']))
+
         for p in net.parameters():
             p.requires_grad = False
 
