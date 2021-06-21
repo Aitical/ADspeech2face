@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+import torch.nn.functional as F
 
 __all__ = ['iresnet18', 'iresnet34', 'iresnet50', 'iresnet100', 'iresnet200']
 
@@ -138,6 +139,9 @@ class IResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
+        b, c, h, w = x.shape
+        if h != 112:
+            x = F.interpolate(x, (112, 112))
         with torch.cuda.amp.autocast(self.fp16):
             x = self.conv1(x)
             x = self.bn1(x)
@@ -148,7 +152,7 @@ class IResNet(nn.Module):
             x = self.layer4(x)
             x = self.bn2(x)
             # print(x.shape)
-            x = nn.AdaptiveAvgPool2d(7)(x)
+            # x = nn.AdaptiveAvgPool2d(7)(x)
             x = torch.flatten(x, 1)
             # print(x.shape)
             x = self.dropout(x)
