@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from config.lightg import dataset_config, NETWORKS_PARAMETERS, experiment_name, experiment_path
+from config.config254 import dataset_config, NETWORKS_PARAMETERS, experiment_name, experiment_path
 # from parse_dataset import get_dataset
 from network import get_network, SimCLRLoss, SupContrastiveLoss, ResD, dual_contrastive_loss
 from utils import Meter, cycle_voice, cycle_face, save_model
@@ -68,8 +68,9 @@ d_optimizer = optim.Adam(d_net.parameters(),
                                lr=NETWORKS_PARAMETERS['lr'],
                                betas=(NETWORKS_PARAMETERS['beta1'],NETWORKS_PARAMETERS['beta2']))
 sr_model = Model('./pretrained_models/edsr_model/model_best.pt')
-sr_model = sr_model.model.eval()
-for param in sr_model.model.parameters():
+sr_model = sr_model.model
+sr_model.eval()
+for param in sr_model.parameters():
     param.requires_grad = False
 
 if NETWORKS_PARAMETERS['multi_gpu']:
