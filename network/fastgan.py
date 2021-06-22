@@ -8,6 +8,7 @@ import random
 seq = nn.Sequential
 
 
+
 def weights_init(m):
     classname = m.__class__.__name__
     if classname.find('Conv') != -1:
@@ -163,15 +164,15 @@ class Generator(nn.Module):
 
         feat_4 = self.init(input)
         feat_8 = self.feat_8(feat_4)
-        print(feat_8.shape, 'feat8')
+        # print(feat_8.shape, 'feat8')
         feat_16 = self.feat_16(feat_8)
-        print(feat_16.shape, 'feat16')
+        # print(feat_16.shape, 'feat16')
         feat_32 = self.feat_32(feat_16)
-        print(feat_32.shape, 'feat32')
+        # print(feat_32.shape, 'feat32')
         feat_64 = self.se_64(feat_4, self.feat_64(feat_32))
-        print(feat_64.shape, 'feat64')
+        # print(feat_64.shape, 'feat64')
         feat_128 = self.se_128(feat_8, self.feat_128(feat_64))
-        print(feat_128.shape, 'feat128')
+        # print(feat_128.shape, 'feat128')
         im_128 = torch.tanh(self.to_128(feat_128))
         im_64 = torch.tanh(self.to_64(feat_64))
 
@@ -259,32 +260,32 @@ class Discriminator(nn.Module):
             imgs = [F.interpolate(imgs, size=self.im_size), F.interpolate(imgs, size=64)]
 
         feat_4 = self.init(imgs[0])
-        print(feat_4.shape)
+        # print(feat_4.shape)
         feat_8 = self.down_8(feat_4)
-        print(feat_8.shape)
+       #  print(feat_8.shape)
         feat_16 = self.down_16(feat_8)
         # feat_16 = self.se_2_16(feat_2, feat_16)
-        print(feat_16.shape)
+        # print(feat_16.shape)
         feat_32 = self.down_32(feat_16)
         feat_32 = self.se_4_32(feat_4, feat_32)
-        print(feat_32.shape, 'feat32')
+        # print(feat_32.shape, 'feat32')
         feat_last = self.down_64(feat_32)
         feat_last = self.se_8_64(feat_8, feat_last)
         # rf_0 = torch.cat([self.rf_big_1(feat_last).view(-1),self.rf_big_2(feat_last).view(-1)])
         # rff_big = torch.sigmoid(self.rf_factor_big)
-        print(feat_last.shape)
+        # print(feat_last.shape)
         rf_0 = self.rf_big(feat_last).view(-1)
         print(rf_0.shape, 'rf0')
         feat_small = self.down_from_small(imgs[1])
-        print(feat_small.shape, 'feat_small')
+        # print(feat_small.shape, 'feat_small')
         # rf_1 = torch.cat([self.rf_small_1(feat_small).view(-1),self.rf_small_2(feat_small).view(-1)])
         rf_1 = self.rf_small(feat_small).view(-1)
-        print(rf_1.shape, 'rf1')
+        # print(rf_1.shape, 'rf1')
 
         if label == 'real':
             rec_img_big = self.decoder_big(feat_last)
             rec_img_small = self.decoder_small(feat_small)
-            print(rec_img_small.shape)
+            # print(rec_img_small.shape)
             part = random.randint(0, 3)
             rec_img_part = None
             if part == 0:
