@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from config.resg_resd import dataset_config, NETWORKS_PARAMETERS, experiment_name, experiment_path
+from config.config254 import dataset_config, NETWORKS_PARAMETERS, experiment_name, experiment_path
 # from parse_dataset import get_dataset
 from network import get_network, SimCLRLoss, SupContrastiveLoss, ResD, dual_contrastive_loss
 from utils import Meter, cycle_voice, cycle_face, save_model
@@ -199,8 +199,9 @@ for it in range(150000):
     # c_optimizer.zero_grad()
     # arcface_optimizer.zero_grad()
     # arcface_optimizer.zero_grad()
-
+    print(face.shape)
     real_score_out, [rec_all, rec_small, rec_part], part_id = d_net(face, label='real')
+
     fake_score_out = d_net(fake_imgs, label='fake')
     real_loss = F.relu(torch.rand_like(real_score_out, device=real_score_out.device)*0.2 + 0.8*real_score_out).mean() + \
         l1_loss(arcface(rec_all), arcface(face_lr)) + \

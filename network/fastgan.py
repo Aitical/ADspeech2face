@@ -275,7 +275,6 @@ class Discriminator(nn.Module):
         # rff_big = torch.sigmoid(self.rf_factor_big)
         # print(feat_last.shape)
         rf_0 = self.rf_big(feat_last).view(-1)
-        print(rf_0.shape, 'rf0')
         feat_small = self.down_from_small(imgs[1])
         # print(feat_small.shape, 'feat_small')
         # rf_1 = torch.cat([self.rf_small_1(feat_small).view(-1),self.rf_small_2(feat_small).view(-1)])
