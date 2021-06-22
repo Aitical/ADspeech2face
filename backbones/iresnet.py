@@ -138,6 +138,22 @@ class IResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
+
+    def percept(self, x):
+        with torch.cuda.amp.autocast(self.fp16):
+            x = self.conv1(x)
+            x = self.bn1(x)
+            x = self.prelu(x)
+            x = self.layer1(x)
+            x = self.layer2(x)
+            x = self.layer3(x)
+            x = self.layer4(x)
+            x = self.bn2(x)
+            # print(x.shape)
+            # x = nn.AdaptiveAvgPool2d(7)(x)
+            x = torch.flatten(x, 1)
+        return x
+
     def forward(self, x):
         b, c, h, w = x.shape
         if h != 112:

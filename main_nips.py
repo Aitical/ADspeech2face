@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 
 from torch.utils.data import DataLoader
-from config.nips import dataset_config, NETWORKS_PARAMETERS, experiment_name, experiment_path
+from config.lightg import dataset_config, NETWORKS_PARAMETERS, experiment_name, experiment_path
 # from parse_dataset import get_dataset
 from network import get_network, SimCLRLoss, SupContrastiveLoss
 from utils import Meter, cycle_voice, cycle_face, save_model
@@ -158,8 +158,8 @@ for it in range(100000):
     # print(embeddings.shape)
 
     # loss1 = 0.1*(contrastive_loss(embeddings.squeeze(), face_vector) + contrastive_loss(face_vector, embeddings.squeeze()))
-
-    fake, fake_16, fake_32, fake_64 = g_net(embeddings)
+    with torch.no_grad():
+        fake, fake_16, fake_32, fake_64 = g_net(embeddings)
     # print(fake.shape, fake_16.shape, fake_64.shape)
     # print(fake.shape)
     # Discriminator
@@ -169,7 +169,7 @@ for it in range(100000):
     c_optimizer.zero_grad()
     # arcface_optimizer.zero_grad()
     real_score_out = d_net(f_net(face))
-    fake_score_out = d_net(f_net(fake.detach()))
+    fake_score_out = d_net(f_net(fake))
     real_label_out = c_net(f_net(face))
     # clip_feature = F.normalize(f_net(face).squeeze())
     # #  print(clip_feature.shape, embeddings.shape)
@@ -197,10 +197,11 @@ for it in range(100000):
 
     # Generator
     g_optimizer.zero_grad()
-    arcface_optimizer.zero_grad()
-
-    fake_score_out = d_net(f_net(fake))
-    fake_label_out = c_net(f_net(fake))
+    # arcface_optimizer.zero_grad()
+    fake, fake_16, fake_32, fake_64 = g_net(embeddings)
+    with torch.no_grad():
+        fake_score_out = d_net(f_net(fake))
+        fake_label_out = c_net(f_net(fake))
     # with torch.no_grad():
     # fake_feature_out = F.normalize(f_net(fake).squeeze())
     # real_feature_out = F.normalize(f_net(face).squeeze())
