@@ -203,9 +203,9 @@ for it in range(150000):
     real_score_out, [rec_all, rec_small, rec_part], part_id = d_net(face, label='real')
     fake_score_out = d_net(fake_imgs, label='fake')
     real_loss = F.relu(torch.rand_like(real_score_out, device=real_score_out.device)*0.2 + 0.8*real_score_out).mean() + \
-        l1_loss(arcface(rec_all), face_lr) + \
-        l1_loss(arcface(rec_small), face_lr) + \
-        l1_loss(arcface(rec_part), crop_image_by_part(face, part_id))
+        l1_loss(arcface(rec_all), arcface(face_lr)) + \
+        l1_loss(arcface(rec_small), arcface(face_lr)) + \
+        l1_loss(arcface(rec_part), arcface(crop_image_by_part(face, part_id)))
     fake_loss = F.relu(torch.rand_like(fake_score_out, device=fake_score_out.device)*0.2 + 0.8*fake_score_out).mean()
 
     D_loss = real_loss + fake_loss
@@ -232,7 +232,7 @@ for it in range(150000):
     # print(f_net(fake).shape)
 
     # reconstruction_loss = l1_loss(fake_imgs[0], face) + l1_loss(fake_imgs[1], face_lr)
-    G_pect_loss = l1_loss(arcface(fake_imgs[0]), face) + l1_loss(arcface(fake_imgs[1]), face_lr)
+    G_pect_loss = l1_loss(arcface(fake_imgs[0]), arcface(face)) + l1_loss(arcface(fake_imgs[1]), arcface(face_lr))
     # arcface_loss = l2_loss(F.normalize(arcface_fake_embedding, dim=1), F.normalize(arcface_real_embedding, dim=1))
     G_loss = -fake_score_out.mean()
 
