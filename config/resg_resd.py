@@ -18,7 +18,7 @@ dataset_config = {
 }
 
 
-experiment_name = 'FastGAN'
+experiment_name = 'ResG_ResD'
 experiment_path = './experiments'
 
 NETWORKS_PARAMETERS = {
@@ -32,7 +32,7 @@ NETWORKS_PARAMETERS = {
     },
     # GENERATOR (g)
     'g': {
-        'network': ResG,
+        'network': LightG,
         'input_channel': 64,
         'channels': [1024, 512, 256, 128, 64],  # channels for deconvolutional layers
         'output_channel': 3,  # images with RGB channels

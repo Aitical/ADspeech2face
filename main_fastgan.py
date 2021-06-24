@@ -11,6 +11,7 @@ from utils import Meter, cycle_voice, cycle_face, save_model
 from edsr.model import Model
 import cv2
 from einops import rearrange, repeat
+import random
 import math
 
 from dataset import VoxCeleb1DataSet, cycle_data
@@ -199,9 +200,8 @@ for it in range(150000):
     # c_optimizer.zero_grad()
     # arcface_optimizer.zero_grad()
     # arcface_optimizer.zero_grad()
-    print(face.shape)
-    real_score_out, [rec_all, rec_small, rec_part], part_id = d_net(face, label='real')
-
+    part_id = random.randint(0,3)
+    real_score_out, [rec_all, rec_small, rec_part] = d_net(face, label='real', part=part_id)
     fake_score_out = d_net(fake_imgs, label='fake')
     real_loss = F.relu(torch.rand_like(real_score_out, device=real_score_out.device)*0.2 + 0.8*real_score_out).mean() + \
         l1_loss(arcface(rec_all), arcface(face_lr)) + \
@@ -225,7 +225,7 @@ for it in range(150000):
     fake_imgs = g_net(embeddings)
 
     with torch.no_grad():
-        fake_score_out = d_net(fake_imgs)
+        fake_score_out = d_net(fake_imgs, label='fake')
     # fake_label_out = c_net(fake)
     # with torch.no_grad():
     # fake_feature_out = F.normalize(f_net(fake).squeeze())

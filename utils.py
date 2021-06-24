@@ -119,4 +119,6 @@ def voice2face(e_net, g_net, voice_file, vad_obj, mfc_obj, GPU=True):
     embedding = e_net(fbank)
     embedding = F.normalize(embedding)
     face = g_net(embedding)
+    if isinstance(face, list):
+        face=face[0]
     return face

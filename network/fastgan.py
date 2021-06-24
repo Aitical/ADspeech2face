@@ -252,10 +252,10 @@ class Discriminator(nn.Module):
         self.rf_small = conv2d(nfc[32], 1, 4, 1, 0, bias=False)
 
         self.decoder_big = SimpleDecoder(nfc[16], nc)
-        self.decoder_part = SimpleDecoder(nfc[64], nc)
+        self.decoder_part = SimpleDecoder(nfc[32], nc)
         self.decoder_small = SimpleDecoder(nfc[32], nc)
 
-    def forward(self, imgs, label):
+    def forward(self, imgs, label, part=None):
         if type(imgs) is not list:
             imgs = [F.interpolate(imgs, size=self.im_size), F.interpolate(imgs, size=64)]
 
@@ -284,19 +284,17 @@ class Discriminator(nn.Module):
         if label == 'real':
             rec_img_big = self.decoder_big(feat_last)
             rec_img_small = self.decoder_small(feat_small)
-            # print(rec_img_small.shape)
-            part = random.randint(0, 3)
             rec_img_part = None
             if part == 0:
-                rec_img_part = self.decoder_part(feat_16[:, :, :8, :8])
+                rec_img_part = self.decoder_part(feat_32[:, :, :8, :8])
             if part == 1:
-                rec_img_part = self.decoder_part(feat_16[:, :, :8, 8:])
+                rec_img_part = self.decoder_part(feat_32[:, :, :8, 8:])
             if part == 2:
-                rec_img_part = self.decoder_part(feat_16[:, :, 8:, :8])
+                rec_img_part = self.decoder_part(feat_32[:, :, 8:, :8])
             if part == 3:
-                rec_img_part = self.decoder_part(feat_16[:, :, 8:, 8:])
-
-            return torch.cat([rf_0, rf_1]), [rec_img_big, rec_img_small, rec_img_part], part
+                rec_img_part = self.decoder_part(feat_32[:, :, 8:, 8:])
+            assert part is not None
+            return torch.cat([rf_0, rf_1]), [rec_img_big, rec_img_small, rec_img_part]
 
         return torch.cat([rf_0, rf_1])
 

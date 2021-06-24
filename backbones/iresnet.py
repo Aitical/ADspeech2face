@@ -170,10 +170,10 @@ class IResNet(nn.Module):
             # print(x.shape)
             # x = nn.AdaptiveAvgPool2d(7)(x)
             x = torch.flatten(x, 1)
-        #     # print(x.shape)
-        #     x = self.dropout(x)
-        # x = self.fc(x.float() if self.fp16 else x)
-        # x = self.features(x)
+             # print(x.shape)
+            x = self.dropout(x)
+        x = self.fc(x.float() if self.fp16 else x)
+        x = self.features(x)
         return x
 
 
