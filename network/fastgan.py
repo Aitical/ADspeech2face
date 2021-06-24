@@ -255,7 +255,7 @@ class Discriminator(nn.Module):
         self.decoder_part = SimpleDecoder(nfc[64], nc)
         self.decoder_small = SimpleDecoder(nfc[32], nc)
 
-    def forward(self, imgs, label):
+    def forward(self, imgs, label, part=0):
         if type(imgs) is not list:
             imgs = [F.interpolate(imgs, size=self.im_size), F.interpolate(imgs, size=64)]
 
@@ -275,7 +275,7 @@ class Discriminator(nn.Module):
         # rff_big = torch.sigmoid(self.rf_factor_big)
         # print(feat_last.shape)
         rf_0 = self.rf_big(feat_last).view(-1)
-        print(rf_0.shape, 'rf0')
+        # print(rf_0.shape, 'rf0')
         feat_small = self.down_from_small(imgs[1])
         # print(feat_small.shape, 'feat_small')
         # rf_1 = torch.cat([self.rf_small_1(feat_small).view(-1),self.rf_small_2(feat_small).view(-1)])
@@ -286,18 +286,19 @@ class Discriminator(nn.Module):
             rec_img_big = self.decoder_big(feat_last)
             rec_img_small = self.decoder_small(feat_small)
             # print(rec_img_small.shape)
-            part = random.randint(0, 3)
+            # part = random.randint(0, 3)
             rec_img_part = None
+            print(feat_16)
             if part == 0:
-                rec_img_part = self.decoder_part(feat_16[:, :, :8, :8])
+                rec_img_part = self.decoder_part(feat_32[:, :, :8, :8])
             if part == 1:
-                rec_img_part = self.decoder_part(feat_16[:, :, :8, 8:])
+                rec_img_part = self.decoder_part(feat_32[:, :, :8, 8:])
             if part == 2:
-                rec_img_part = self.decoder_part(feat_16[:, :, 8:, :8])
+                rec_img_part = self.decoder_part(feat_32[:, :, 8:, :8])
             if part == 3:
-                rec_img_part = self.decoder_part(feat_16[:, :, 8:, 8:])
+                rec_img_part = self.decoder_part(feat_32[:, :, 8:, 8:])
 
-            return torch.cat([rf_0, rf_1]), [rec_img_big, rec_img_small, rec_img_part], part
+            return torch.cat([rf_0, rf_1]), [rec_img_big, rec_img_small, rec_img_part]
 
         return torch.cat([rf_0, rf_1])
 
