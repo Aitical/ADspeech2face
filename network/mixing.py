@@ -49,8 +49,10 @@ class Upsample(nn.Module):
 
 
 class SeStyleMixing(nn.Module):
-    def __init__(self, input_channel, output_channel):
+    def __init__(self, input_channel, output_channel, mode='drop'):
         super(SeStyleMixing, self).__init__()
+        assert mode in ['add', 'mu', 'drop']
+        self.mode = mode
         self.mapping = nn.Sequential(
             nn.Conv2d(input_channel*2, output_channel*2, kernel_size=(1, 1), ),
             nn.BatchNorm2d(output_channel*2),
@@ -67,12 +69,19 @@ class SeStyleMixing(nn.Module):
         style_repeat = style.repeat(1, 1, h, w)
         out = self.mapping(torch.cat([se_feature, style_repeat], dim=1))
         # TODO：测试输出要不要加或者乘以原来的x
-        return out
+        if self.mode == 'add':
+            return out + x
+        elif self.mode == 'mu':
+            return out*x
+        else:
+            return out
 
 
 class ConditionAttentionLayer(nn.Module):
-    def __init__(self, in_channel, hidden_channel=None):
+    def __init__(self, in_channel, hidden_channel=None, mode='add'):
         super(ConditionAttentionLayer, self).__init__()
+        assert mode in ['add', 'mu', 'drop']
+        self.mode = mode
         if hidden_channel is None:
             hidden_channel = in_channel*2
         self.conv = nn.Sequential(
@@ -94,7 +103,12 @@ class ConditionAttentionLayer(nn.Module):
         # condition = self.conv(condition)
         out = self.conv1(torch.cat([x1, condition], dim=1))
         # TODO: 测试一下这个到底是加号 乘号 还是不要
-        return out+x
+        if self.mode == 'add':
+            return out+x
+        elif self.mode == 'mu':
+            return out*x
+        else:
+            return out
 
 
 class MixingG(nn.Module):
