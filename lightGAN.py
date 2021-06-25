@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from config.resg_resd import dataset_config, NETWORKS_PARAMETERS, experiment_name, experiment_path
+from config.mixing import dataset_config, NETWORKS_PARAMETERS, experiment_name, experiment_path
 # from parse_dataset import get_dataset
 from network import get_network, SimCLRLoss, SupContrastiveLoss, ResD, dual_contrastive_loss
 from utils import Meter, cycle_voice, cycle_face, save_model
@@ -104,7 +104,7 @@ current_epoch = 1
 def adjust_learning_rate(optimizer, epoch, lr=2e-3):
     """Decay the learning rate based on schedule"""
     # cosine lr schedule
-    lr *= 0.5 * (1. + math.cos(math.pi * epoch / 1000))
+    lr *= 0.5 * (1. + math.cos(math.pi * epoch / 1500))
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
     # wandb.log({'lr': lr, 'epoch': epoch})
@@ -247,6 +247,7 @@ for it in range(150000):
     # loss2 = 0.05 * affine_loss(non_local_fake_prob, non_local_prob)
 
     (0.2 * G_contrastive_loss + 0.3*reconstruction_loss + 0.2 * arcface_loss + 0.2*loss32).backward()
+    torch.nn.utils.clip_grad_norm_(g_net.parameters(), max_norm=1)
     GD_fake.update(G_contrastive_loss.item())
     GC_fake.update(reconstruction_loss.item() + arcface_loss.item())
     g_optimizer.step()
@@ -254,7 +255,7 @@ for it in range(150000):
     batch_time.update(time.time() - start_time)
 
     # print status
-    if it % 200 == 0:
+    if it % 90 == 0:
         current_epoch += 1
         print(iteration, data_time, batch_time,
               D_real, D_fake, C_real, GD_fake, GC_fake)
