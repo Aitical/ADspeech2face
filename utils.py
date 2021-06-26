@@ -62,7 +62,7 @@ def save_model(net, model_path, multi_gpu=False):
     if not os.path.exists(model_dir):
        os.makedirs(model_dir)
     if multi_gpu:
-        torch.save(net.module.state_dict(), model_path)
+        torch.save(net.state_dict(), model_path)
     else:
         torch.save(net.state_dict(), model_path)
 
