@@ -12,10 +12,20 @@ from edsr.model import Model
 import cv2
 from einops import rearrange, repeat
 import math
+import sys
+import importlib
 
 from dataset import VoxCeleb1DataSet, cycle_data
 from torchvision.transforms import transforms
 
+
+config_name = sys.argv[1]
+config_module = importlib.import_module(f'config.{config_name}')
+
+dataset_config = config_module.dataset_config
+NETWORKS_PARAMETERS = config_module.NETWORKS_PARAMETERS
+experiment_name = config_module.experiment_name
+experiment_path = config_module.experiment_path
 
 os.makedirs(os.path.join(experiment_path, experiment_name), exist_ok=True)
 # dataset and dataloader
@@ -268,7 +278,10 @@ for it in range(150000):
         GC_fake.reset()
 
         # snapshot
-        save_model(g_net, NETWORKS_PARAMETERS['g']['model_path'])
+
+        save_model(g_net.module, NETWORKS_PARAMETERS['g']['model_path'], NETWORKS_PARAMETERS['multi_gpu'])
+
+
         # save_model(e_net, NETWORKS_PARAMETERS['e']['model_path'])
         # save_model(f_net, NETWORKS_PARAMETERS['f']['model_path'])
         # save_model(d_net, NETWORKS_PARAMETERS['d']['model_path'])
