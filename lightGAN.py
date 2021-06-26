@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from config.resg_resd import dataset_config, NETWORKS_PARAMETERS, experiment_name, experiment_path
+from config.config254 import dataset_config, NETWORKS_PARAMETERS, experiment_name, experiment_path
 # from parse_dataset import get_dataset
 from network import get_network, SimCLRLoss, SupContrastiveLoss, ResD, dual_contrastive_loss
 from utils import Meter, cycle_voice, cycle_face, save_model
