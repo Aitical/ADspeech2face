@@ -200,7 +200,7 @@ for it in range(150000):
     # c_optimizer.zero_grad()
     # arcface_optimizer.zero_grad()
     # arcface_optimizer.zero_grad()
-    part_id = random.randint(0,3)
+    part_id = random.randint(0, 3)
     real_score_out, [rec_all, rec_small, rec_part] = d_net(face, label='real', part=part_id)
     fake_score_out = d_net(fake_imgs, label='fake')
     real_loss = F.relu(torch.rand_like(real_score_out, device=real_score_out.device)*0.2 + 0.8*real_score_out).mean() + \
