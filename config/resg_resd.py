@@ -18,7 +18,7 @@ dataset_config = {
 }
 
 
-experiment_name = 'ResG_ResD'
+experiment_name = 'Re_LightG'
 experiment_path = './experiments'
 
 NETWORKS_PARAMETERS = {
