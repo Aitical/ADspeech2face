@@ -241,7 +241,7 @@ for it in range(150000):
     # out_space_loss = 0.1*(0.5*l1_loss(fake_16, lr_16) + 0.5*l1_loss(fake_32, lr_32))
 
     # loss2 = 0.1 * (l1_loss(fake_16, lr_16))
-    loss32 = 0.1 * (l1_loss(fake_32, lr_32))
+    loss32 = 0.1 * (l1_loss(fake_32, lr_32)) + 0.1*(l1_loss(fake_16, lr_16))
     # # BxCx16x16
     # b, c, h, w = lr_16.shape
     # non_local_lr = lr_16.reshape(b, c, h*w)
