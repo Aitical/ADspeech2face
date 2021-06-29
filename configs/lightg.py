@@ -1,4 +1,4 @@
-from network import VoiceEmbedNet, Generator, FaceEmbedNet, Classifier, BasicGenerator, BSEGenerator, LightG, ResD
+from models import VoiceEmbedNet, Generator, FaceEmbedNet, Classifier, BasicGenerator, BSEGenerator, LightG, ResD
 from dataset import voxceleb1_collate_fn
 from backbones import iresnet34
 

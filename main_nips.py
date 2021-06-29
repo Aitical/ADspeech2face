@@ -4,9 +4,9 @@ import torch
 import torch.nn.functional as F
 
 from torch.utils.data import DataLoader
-from config.lightg import dataset_config, NETWORKS_PARAMETERS, experiment_name, experiment_path
+from configs.lightg import dataset_config, NETWORKS_PARAMETERS, experiment_name, experiment_path
 # from parse_dataset import get_dataset
-from network import get_network, SimCLRLoss, SupContrastiveLoss
+from models import get_network, SimCLRLoss, SupContrastiveLoss
 from utils import Meter, cycle_voice, cycle_face, save_model
 from edsr.model import Model
 import cv2

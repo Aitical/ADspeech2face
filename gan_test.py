@@ -5,13 +5,13 @@ import torchvision.utils as vutils
 import webrtcvad
 
 from mfcc import MFCC
-from config.config254 import dataset_config, NETWORKS_PARAMETERS
-from network import get_network
+from configs.config254 import dataset_config, NETWORKS_PARAMETERS
+from models import get_network
 # from dataset import VoxCeleb1DataSet
 from utils import voice2face
 from tqdm import tqdm
 import sys
-from network import MixingG, LightG, ResG
+from models import MixingG, LightG, ResG
 
 
 # initialization

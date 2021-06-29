@@ -1,7 +1,7 @@
-import string
+from models import VoiceEmbedNet, Generator, FaceEmbedNet, Classifier, BasicGenerator, BSEGenerator, LightG, ResD, ResG
 from dataset import voxceleb1_collate_fn
-from network import VoiceEmbedNet, Generator, FaceEmbedNet, Classifier, BasicGenerator, BSEGenerator
 from backbones import iresnet34
+
 
 dataset_config = {
     'root_path': '/home/aitical/data/voxceleb/voxceleb/train',
@@ -14,11 +14,11 @@ dataset_config = {
     'collate_fn': voxceleb1_collate_fn,
     'sample_num': 2,
     # test data
-    'test_path': '/data/voxceleb/test/'
+    'test_path': '/home/aitical/data4t2/voxceleb/test'
 }
 
 
-experiment_name = 'Nips'
+experiment_name = 'Re_LightG'
 experiment_path = './experiments'
 
 NETWORKS_PARAMETERS = {
@@ -32,7 +32,7 @@ NETWORKS_PARAMETERS = {
     },
     # GENERATOR (g)
     'g': {
-        'network': BasicGenerator,
+        'network': LightG,
         'input_channel': 64,
         'channels': [1024, 512, 256, 128, 64],  # channels for deconvolutional layers
         'output_channel': 3,  # images with RGB channels
@@ -73,7 +73,7 @@ NETWORKS_PARAMETERS = {
     'lr': 0.0002,
     'beta1': 0.5,
     'beta2': 0.999,
-
+    'multi_gpu':False,
     # MODE, use GPU or not
     'GPU': True,
 }

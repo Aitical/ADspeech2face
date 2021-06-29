@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
 # from parse_dataset import get_dataset
-from network import get_network, SimCLRLoss, SupContrastiveLoss, ResD, dual_contrastive_loss
+from models import get_network, SimCLRLoss, SupContrastiveLoss, ResD, dual_contrastive_loss
 from utils import Meter, cycle_voice, cycle_face, save_model
 from edsr.model import Model
 import cv2
