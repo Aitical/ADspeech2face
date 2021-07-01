@@ -138,6 +138,7 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
+        x = x.unsqueeze(1)
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
@@ -154,7 +155,7 @@ class ResNet(nn.Module):
         elif self.pool == 'vlad':
             x = self.fc_(x)
 
-        return x
+        return x[:, :, None, None]
 
 
 class NetVLAD(nn.Module):

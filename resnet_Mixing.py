@@ -19,7 +19,7 @@ from torchvision.transforms import transforms
 from models import resnet50
 
 config_name = sys.argv[1]
-config_module = importlib.import_module(f'config.{config_name}')
+config_module = importlib.import_module(f'configs.{config_name}')
 
 dataset_config = config_module.dataset_config
 NETWORKS_PARAMETERS = config_module.NETWORKS_PARAMETERS
@@ -78,7 +78,7 @@ for param in e_net.parameters():
 
 if NETWORKS_PARAMETERS['multi_gpu']:
     e_net = torch.nn.DataParallel(e_net)
-
+e_net.cuda()
 g_net, g_optimizer = get_network('g', NETWORKS_PARAMETERS, train=True)
 
 d_net = ResD(NETWORKS_PARAMETERS['f']['input_channel'], NETWORKS_PARAMETERS['f']['channels'])
@@ -146,6 +146,7 @@ for it in range(150000):
 
     face = face.cuda()
     voice = voice.cuda()
+    # print(voice.shape, 'voice')
     label = label.cuda()
     face_lr = face_lr.cuda()
     # noise = noise.cuda()
