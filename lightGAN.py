@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
 # from parse_dataset import get_dataset
-from network import get_network, SimCLRLoss, SupContrastiveLoss, ResD, dual_contrastive_loss
+from models import get_network, SimCLRLoss, SupContrastiveLoss, ResD, dual_contrastive_loss
 from utils import Meter, cycle_voice, cycle_face, save_model
 from edsr.model import Model
 import cv2
@@ -244,7 +244,7 @@ for it in range(150000):
     # out_space_loss = 0.1*(0.5*l1_loss(fake_16, lr_16) + 0.5*l1_loss(fake_32, lr_32))
 
     # loss2 = 0.1 * (l1_loss(fake_16, lr_16))
-    loss32 = 0.1 * (l1_loss(fake_32, lr_32))
+    loss32 = 0.1 * (l1_loss(fake_32, lr_32)) + 0.1*(l1_loss(fake_16, lr_16))
     # # BxCx16x16
     # b, c, h, w = lr_16.shape
     # non_local_lr = lr_16.reshape(b, c, h*w)
@@ -267,7 +267,7 @@ for it in range(150000):
     batch_time.update(time.time() - start_time)
 
     # print status
-    if it % 90 == 0:
+    if it % 30 == 0:
         current_epoch += 1
         print(iteration, data_time, batch_time,
               D_real, D_fake, C_real, GD_fake, GC_fake)

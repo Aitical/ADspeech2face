@@ -8,10 +8,10 @@ def parse_metafile(meta_file):
         ID, name, _, _, mode = line.rstrip().split('\t')
         celeb_ids[ID] = name
         # 这里要不要留测试样本？
-        # if mode.strip() == 'dev':
-        #     celeb_ids[ID] = name
-        # else:
-        #     assert mode.strip() == 'test'
+        if mode.strip() == 'dev':
+            celeb_ids[ID] = name
+        else:
+            assert mode.strip() == 'test'
     return celeb_ids
 
 def get_labels(voice_list, face_list):
