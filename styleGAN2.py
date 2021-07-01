@@ -85,8 +85,8 @@ if NETWORKS_PARAMETERS['multi_gpu']:
 g_net.cuda()
 g_optimizer = optim.Adam(g_net.parameters(), lr=3e-3)
 
-# d_net = Discriminator(128)
-d_net = ResD(NETWORKS_PARAMETERS['f']['input_channel'], NETWORKS_PARAMETERS['f']['channels'])
+d_net = Discriminator(128)
+# d_net = ResD(NETWORKS_PARAMETERS['f']['input_channel'], NETWORKS_PARAMETERS['f']['channels'])
 if NETWORKS_PARAMETERS['multi_gpu']:
     d_net = torch.nn.DataParallel(d_net)
 d_net.cuda()
@@ -200,11 +200,11 @@ for it in range(150000):
     # arcface_optimizer.zero_grad()
     # arcface_optimizer.zero_grad()
 
-    real_score_out, real_rec = d_net(face)
-    fake_score_out, fake_rec = d_net(fake)
+    real_score_out = d_net(face)
+    fake_score_out = d_net(fake)
 
-    real_rec_embd = arcface(real_rec)
-    fake_rec_embd = arcface(fake_rec)
+    # real_rec_embd = arcface(real_rec)
+    # fake_rec_embd = arcface(fake_rec)
 
     # real_label_out = c_net(f_net(face))
     # clip_feature = F.normalize(f_net(face).squeeze())
@@ -218,13 +218,13 @@ for it in range(150000):
     # D_fake_loss = F.binary_cross_entropy(torch.sigmoid(fake_score_out), fake_label.float())
     # C_real_loss = F.nll_loss(F.log_softmax(real_label_out, 1), label)
     D_loss = dual_contrastive_loss(real_score_out, fake_score_out)
-    D_arcface_loss = l2_loss(F.normalize(fake_rec_embd, dim=1), F.normalize(real_rec_embd, dim=1))
-    D_rec_loss = l1_loss(real_rec, face)
+    # D_arcface_loss = l2_loss(F.normalize(fake_rec_embd, dim=1), F.normalize(real_rec_embd, dim=1))
+    # D_rec_loss = l1_loss(real_rec, face)
     # reconstruction_loss = l1_loss()
 
     D_real.update(D_loss.item())
-    C_real.update(D_arcface_loss.item())
-    (D_loss + 0.3*D_rec_loss + 0.3*D_arcface_loss).backward()
+    # C_real.update(D_arcface_loss.item())
+    D_loss.backward()
     # f_optimizer.step()
     d_optimizer.step()
     # c_optimizer.step()
@@ -236,8 +236,8 @@ for it in range(150000):
    #  fake, fake_16, fake_32, fake_64 = g_net(embeddings)
     fake, _ = g_net([embeddings, ])
     with torch.no_grad():
-        fake_score_out, _ = d_net(fake)
-        real_score_out, _ = d_net(face)
+        fake_score_out = d_net(fake)
+        real_score_out = d_net(face)
     # fake_label_out = c_net(fake)
     # with torch.no_grad():
     # fake_feature_out = F.normalize(f_net(fake).squeeze())
