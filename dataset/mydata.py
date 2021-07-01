@@ -174,8 +174,8 @@ def voice_collate_fn(batch):
 
     for i in batch:
         # img.extend(i[0])
-        voice.extend(i[1])
-        label.extend(i[2])
+        voice.extend(i[0])
+        label.extend(i[1])
         # img_lr.extend(i[3])
 
 
