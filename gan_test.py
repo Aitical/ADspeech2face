@@ -20,7 +20,7 @@ mfc_obj = MFCC(nfilt=64, lowerf=20., upperf=7200., samprate=16000, nfft=1024, wl
 e_net, _ = get_network('e', NETWORKS_PARAMETERS, train=False)
 # g_net, _ = get_network('g', NETWORKS_PARAMETERS, train=False)
 g_net = MixingG(64, [1024, 512, 256, 128, 64], 3)
-# g_net = torch.nn.DataParallel(g_net)
+#g_net = torch.nn.DataParallel(g_net)
 miss = g_net.load_state_dict(torch.load(NETWORKS_PARAMETERS['g']['model_path']))
 # torch.save(g_net.module.state_dict(), NETWORKS_PARAMETERS['g']['model_path'])
 print(miss, 'ok')

@@ -267,7 +267,7 @@ for it in range(150000):
     batch_time.update(time.time() - start_time)
 
     # print status
-    if it % 90 == 0:
+    if it % 30 == 0:
         current_epoch += 1
         print(iteration, data_time, batch_time,
               D_real, D_fake, C_real, GD_fake, GC_fake)
