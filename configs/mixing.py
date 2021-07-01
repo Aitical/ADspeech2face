@@ -1,4 +1,4 @@
-from network import VoiceEmbedNet, Generator, FaceEmbedNet, Classifier, BasicGenerator, BSEGenerator, LightG, ResD
+from models import VoiceEmbedNet, Generator, FaceEmbedNet, Classifier, BasicGenerator, BSEGenerator, LightG, ResD, ResG, MixingG
 from dataset import voxceleb1_collate_fn
 from backbones import iresnet34
 
@@ -8,7 +8,7 @@ dataset_config = {
     # voice dataset
     'voice_ext': 'npy',
     'img_ext': 'jpg',
-    'batch_size': 64,
+    'batch_size': 32,
     'voice_frame': [300, 600],
     'num_workers': 4,
     'collate_fn': voxceleb1_collate_fn,
@@ -18,7 +18,7 @@ dataset_config = {
 }
 
 
-experiment_name = 'LightGAN'
+experiment_name = 'MixingG'
 experiment_path = './experiments'
 
 NETWORKS_PARAMETERS = {
@@ -32,7 +32,7 @@ NETWORKS_PARAMETERS = {
     },
     # GENERATOR (g)
     'g': {
-        'network': LightG,
+        'network': MixingG,
         'input_channel': 64,
         'channels': [1024, 512, 256, 128, 64],  # channels for deconvolutional layers
         'output_channel': 3,  # images with RGB channels
@@ -69,7 +69,7 @@ NETWORKS_PARAMETERS = {
         'model_path': './pretrained_models/arc_face_model/backbone.pth'
     },
 
-    # OPTIMIZER PARAMETERS 
+    # OPTIMIZER PARAMETERS
     'lr': 0.0002,
     'beta1': 0.5,
     'beta2': 0.999,

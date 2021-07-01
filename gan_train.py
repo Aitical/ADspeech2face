@@ -4,9 +4,9 @@ import torch
 import torch.nn.functional as F
 
 from torch.utils.data import DataLoader
-from config import DATASET_PARAMETERS, NETWORKS_PARAMETERS
+from configs import DATASET_PARAMETERS, NETWORKS_PARAMETERS
 from parse_dataset import get_dataset
-from network import get_network, SimCLRLoss, SupContrastiveLoss
+from models import get_network, SimCLRLoss, SupContrastiveLoss
 from utils import Meter, cycle_voice, cycle_face, save_model
 from edsr.model import Model
 import cv2

@@ -85,6 +85,63 @@ class VoxCeleb1DataSet(Dataset):
         return img_samples, voice_samples, labels, img_lr_samples
 
 
+class VoiceDataSet(Dataset):
+    def __init__(self, root_path, sample_num, voice_frame=[300, 800], voice_transform=None, voice_ext='npy'):
+        root = pathlib.Path(root_path)
+        data = []
+        folders = os.listdir(root)
+        id_index = list(range(len(folders)))
+        id2label = dict(zip(folders, id_index))
+        self.id2label = id2label
+        self.id_name = folders
+        self.sample_num = sample_num
+        self.voice_transform = voice_transform
+
+        self.voice_frame = voice_frame
+
+        for id_folder in folders:
+
+            id_folder_path = os.path.join(root, id_folder)
+            id_folder_path = pathlib.Path(id_folder_path)
+            voices = [i for i in id_folder_path.glob(f'voice/*.{voice_ext}')]
+
+            id_message = dict(
+                voice_count=len(voices),
+                voices=voices,
+                id=id_folder,
+                label=id2label[id_folder]
+            )
+            data.append(id_message)
+        self.data = data
+        self.length = len(self.data)
+        self.num_classes = self.length
+
+    def __len__(self):
+        return self.length
+
+    def __getitem__(self, index):
+        #  print(index)
+        data_message = self.data[index]
+        voice_samples = []
+        labels = [data_message['label']]*self.sample_num
+        for c in range(self.sample_num):
+            # print(data_message['id'], data_message['voice_count'])
+            voice_sample = data_message['voices'][random.randint(0, data_message['voice_count']-1)]
+            voice_data = np.load(voice_sample).T.astype('float32')
+            # print(voice_data.shape)
+            assert self.voice_frame[1] <= voice_data.shape[1]
+            frame_length = self.voice_frame[1]  # random.randint(self.voice_frame[0], self.voice_frame[1])
+            pt = np.random.randint(voice_data.shape[1] - frame_length + 1)
+            voice_data = voice_data[:, pt:pt + frame_length]
+            if self.voice_transform is not None:
+                voice_data = self.voice_transform(voice_data)
+
+            voice_samples.append(voice_data)
+
+        return voice_samples, labels
+
+
+
 def voxceleb1_collate_fn(batch):
     # img, voice, labels = batch
     img = []
@@ -106,6 +163,26 @@ def voxceleb1_collate_fn(batch):
     # print(img.shape)
     return img, voice, label, img_lr
 
+
+def voice_collate_fn(batch):
+    # img, voice, labels = batch
+    # img = []
+    voice = []
+    label = []
+    # img_lr = []
+    random.shuffle(batch)
+
+    for i in batch:
+        # img.extend(i[0])
+        voice.extend(i[0])
+        label.extend(i[1])
+        # img_lr.extend(i[3])
+
+
+    voice = torch.stack(voice)
+    label = torch.tensor(label).long()
+    # print(img.shape)
+    return voice, label
 
 def cycle_data(dataloader):
     while True:

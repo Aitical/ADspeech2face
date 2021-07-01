@@ -1,4 +1,4 @@
-from network import VoiceEmbedNet, Generator, FaceEmbedNet, Classifier, BasicGenerator, BSEGenerator, LightG, ResD, ResG
+from models import VoiceEmbedNet, Generator, FaceEmbedNet, Classifier, BasicGenerator, BSEGenerator, LightG, ResD
 from dataset import voxceleb1_collate_fn
 from backbones import iresnet34
 
@@ -9,16 +9,17 @@ dataset_config = {
     'voice_ext': 'npy',
     'img_ext': 'jpg',
     'batch_size': 64,
-    'voice_frame': [300, 600],
+    'voice_frame': [300, 800],
     'num_workers': 4,
     'collate_fn': voxceleb1_collate_fn,
     'sample_num': 2,
+    'iters': 50000,
     # test data
     'test_path': '/home/aitical/data4t2/voxceleb/test'
 }
 
 
-experiment_name = 'Re_LightG'
+experiment_name = 'LightGAN'
 experiment_path = './experiments'
 
 NETWORKS_PARAMETERS = {
@@ -69,11 +70,11 @@ NETWORKS_PARAMETERS = {
         'model_path': './pretrained_models/arc_face_model/backbone.pth'
     },
 
-    # OPTIMIZER PARAMETERS
+    # OPTIMIZER PARAMETERS 
     'lr': 0.0002,
     'beta1': 0.5,
     'beta2': 0.999,
-    'multi_gpu':False,
+    'multi_gpu': True,
     # MODE, use GPU or not
     'GPU': True,
 }
