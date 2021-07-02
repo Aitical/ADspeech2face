@@ -64,7 +64,8 @@ train_loader = DataLoader(
     shuffle=True,
     batch_size=dataset_config['batch_size'],
     num_workers=dataset_config['num_workers'],
-    collate_fn=dataset_config['collate_fn']
+    collate_fn=dataset_config['collate_fn'],
+    drop_last=True
 )
 
 data_iter = cycle_data(train_loader)
@@ -132,7 +133,7 @@ current_epoch = 1
 def adjust_learning_rate(optimizer, epoch, lr=2e-3):
     """Decay the learning rate based on schedule"""
     # cosine lr schedule
-    lr *= 0.5 * (1. + math.cos(math.pi * epoch / 1500))
+    lr *= 0.5 * (1. + math.cos(math.pi * epoch / 2000))
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
     # wandb.log({'lr': lr, 'epoch': epoch})
@@ -199,7 +200,7 @@ for it in range(150000):
     # c_optimizer.zero_grad()
     # arcface_optimizer.zero_grad()
     # arcface_optimizer.zero_grad()
-
+    # print(face.shape, fake.shape)
     real_score_out = d_net(face)
     fake_score_out = d_net(fake)
 
@@ -282,7 +283,7 @@ for it in range(150000):
     batch_time.update(time.time() - start_time)
 
     # print status
-    if it % 90 == 0:
+    if it % 60 == 0:
         current_epoch += 1
         print(iteration, data_time, batch_time,
               D_real, D_fake, C_real, GD_fake, GC_fake)
