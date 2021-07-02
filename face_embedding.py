@@ -126,13 +126,13 @@ if __name__ == "__main__":
 
 
     test_trans = transforms.Compose([transforms.ToTensor()],)
-                                     # transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])])
+                                     #transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])])
     raw_embedding = torch.load(args.anchor_embedding)
     index_list = np.unique(raw_embedding['targets'])
     
     celeb_face = CelebFace(args.img_path, index_list=index_list, tag=args.tag, transforms=test_trans)
     print(len(celeb_face))
     # vgg_face = VGGFace(root=args.img_path, transforms=test_trans)
-    face_loader = DataLoader(celeb_face, batch_size=512, shuffle=False, num_workers=16)
+    face_loader = DataLoader(celeb_face, batch_size=64, shuffle=False, num_workers=16)
 
     inference_vggface(args.weight, args.network, face_loader, args.save_path)

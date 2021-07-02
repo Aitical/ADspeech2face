@@ -6,9 +6,6 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 # from parse_dataset import get_dataset
 from models import get_network, SimCLRLoss, SupContrastiveLoss, ResD, dual_contrastive_loss
-from models.stylegan2 import Generator, Discriminator
-from criteria import LPIPS
-
 from utils import Meter, cycle_voice, cycle_face, save_model
 from edsr.model import Model
 import cv2
@@ -16,9 +13,12 @@ from einops import rearrange, repeat
 import math
 import sys
 import importlib
+
 from dataset import VoxCeleb1DataSet, cycle_data
 from torchvision.transforms import transforms
-
+from models import resnet50
+from models.stylegan2 import Generator
+from criteria import LPIPS
 
 config_name = sys.argv[1]
 config_module = importlib.import_module(f'configs.{config_name}')
@@ -69,32 +69,34 @@ train_loader = DataLoader(
 
 data_iter = cycle_data(train_loader)
 
-lpips_loss = LPIPS('vgg')
-if NETWORKS_PARAMETERS['multi_gpu']:
-   lpips_loss = torch.nn.DataParallel(lpips_loss)
-lpips_loss.eval()
-lpips_loss.cuda()
-
 # networks, Fe, Fg, Fd (f+d), Fc (f+c)
 print('Initializing networks...')
-e_net, e_optimizer = get_network('e', NETWORKS_PARAMETERS, train=False)
+# e_net, e_optimizer = get_network('e', NETWORKS_PARAMETERS, train=False)
+e_net, e_optimizer = resnet50(pretrained=False, num_classes=1024), None
+e_net.load_state_dict(torch.load('./experiments/voice.pt', map_location='cpu'))
+e_net.eval()
+for param in e_net.parameters():
+    param.requires_grad = False
+
+if NETWORKS_PARAMETERS['multi_gpu']:
+    e_net = torch.nn.DataParallel(e_net)
+e_net.cuda()
 # g_net, g_optimizer = get_network('g', NETWORKS_PARAMETERS, train=True)
-g_net = Generator(128, 64, 4)
+g_net = Generator(128, 1024, 8)
 if NETWORKS_PARAMETERS['multi_gpu']:
     g_net = torch.nn.DataParallel(g_net)
 g_net.cuda()
-g_optimizer = optim.Adam(g_net.parameters(), lr=3e-3)
-
-d_net = Discriminator(128)
-# d_net = ResD(NETWORKS_PARAMETERS['f']['input_channel'], NETWORKS_PARAMETERS['f']['channels'])
-if NETWORKS_PARAMETERS['multi_gpu']:
-    d_net = torch.nn.DataParallel(d_net)
-d_net.cuda()
-
-d_optimizer = optim.Adam(d_net.parameters(),
+g_optimizer = optim.Adam(g_net.parameters(),
                                lr=NETWORKS_PARAMETERS['lr'],
                                betas=(NETWORKS_PARAMETERS['beta1'],NETWORKS_PARAMETERS['beta2']))
 
+d_net = ResD(NETWORKS_PARAMETERS['f']['input_channel'], NETWORKS_PARAMETERS['f']['channels'])
+if NETWORKS_PARAMETERS['multi_gpu']:
+    d_net = torch.nn.DataParallel(d_net)
+d_net.cuda()
+d_optimizer = optim.Adam(d_net.parameters(),
+                               lr=NETWORKS_PARAMETERS['lr'],
+                               betas=(NETWORKS_PARAMETERS['beta1'],NETWORKS_PARAMETERS['beta2']))
 sr_model = Model('./pretrained_models/edsr_model/model_best.pt')
 sr_model = sr_model.model
 sr_model.eval()
@@ -105,6 +107,11 @@ if NETWORKS_PARAMETERS['multi_gpu']:
     sr_model = torch.nn.DataParallel(sr_model)
 sr_model.cuda()
 print('SR model loaded')
+lpips_loss = LPIPS('vgg')
+if NETWORKS_PARAMETERS['multi_gpu']:
+   lpips_loss = torch.nn.DataParallel(lpips_loss)
+lpips_loss.eval()
+lpips_loss.cuda()
 # f_net, f_optimizer = get_network('f', NETWORKS_PARAMETERS, train=True)
 # d_net, d_optimizer = get_network('d', NETWORKS_PARAMETERS, train=True)
 # c_net, c_optimizer = get_network('c', NETWORKS_PARAMETERS, train=True)
@@ -137,6 +144,7 @@ def adjust_learning_rate(optimizer, epoch, lr=2e-3):
         param_group['lr'] = lr
     # wandb.log({'lr': lr, 'epoch': epoch})
 
+
 l1_loss = torch.nn.L1Loss().cuda()
 l2_loss = torch.nn.MSELoss().cuda()
 affine_loss = torch.nn.KLDivLoss().cuda()
@@ -152,6 +160,7 @@ for it in range(150000):
 
     face = face.cuda()
     voice = voice.cuda()
+    # print(voice.shape, 'voice')
     label = label.cuda()
     face_lr = face_lr.cuda()
     # noise = noise.cuda()
@@ -178,18 +187,19 @@ for it in range(150000):
     embeddings = e_net(voice)
     embeddings = F.normalize(embeddings)
     # introduce some permutations
-    noise = 0.05*torch.rand_like(embeddings, device=embeddings.device)
-    # print(embeddings.shape, noise.shape)
-    embeddings = embeddings + noise
-    embeddings = F.normalize(embeddings)
+    # noise = 0.05*torch.rand_like(embeddings, device=embeddings.device)
+    # # print(embeddings.shape, noise.shape)
+    # embeddings = embeddings + noise
+    # embeddings = F.normalize(embeddings)
     real_label = torch.ones((embeddings.shape[0], 1), device=embeddings.device)
     fake_label = torch.zeros_like(real_label, device=embeddings.device)
-    # print(embeddings.shape)
     embeddings = embeddings.squeeze()
+    # print(embeddings.shape)
+
     # loss1 = 0.1*(contrastive_loss(embeddings.squeeze(), face_vector) + contrastive_loss(face_vector, embeddings.squeeze()))
 
     with torch.no_grad():
-        fake, _ = g_net([embeddings, ])
+        fake, _ = g_net([embeddings,])
     # print(fake.shape, fake_16.shape, fake_64.shape)
     # print(fake.shape)
     # Discriminator
@@ -200,11 +210,11 @@ for it in range(150000):
     # arcface_optimizer.zero_grad()
     # arcface_optimizer.zero_grad()
 
-    real_score_out = d_net(face)
-    fake_score_out = d_net(fake)
+    real_score_out, real_rec = d_net(face)
+    fake_score_out, fake_rec = d_net(fake)
 
-    # real_rec_embd = arcface(real_rec)
-    # fake_rec_embd = arcface(fake_rec)
+    real_rec_embd = arcface(real_rec)
+    fake_rec_embd = arcface(fake_rec)
 
     # real_label_out = c_net(f_net(face))
     # clip_feature = F.normalize(f_net(face).squeeze())
@@ -218,13 +228,13 @@ for it in range(150000):
     # D_fake_loss = F.binary_cross_entropy(torch.sigmoid(fake_score_out), fake_label.float())
     # C_real_loss = F.nll_loss(F.log_softmax(real_label_out, 1), label)
     D_loss = dual_contrastive_loss(real_score_out, fake_score_out)
-    # D_arcface_loss = l2_loss(F.normalize(fake_rec_embd, dim=1), F.normalize(real_rec_embd, dim=1))
-    # D_rec_loss = l1_loss(real_rec, face)
+    D_arcface_loss = l2_loss(F.normalize(fake_rec_embd, dim=1), F.normalize(real_rec_embd, dim=1))
+    D_rec_loss = l1_loss(real_rec, face)
     # reconstruction_loss = l1_loss()
 
     D_real.update(D_loss.item())
-    # C_real.update(D_arcface_loss.item())
-    D_loss.backward()
+    C_real.update(D_arcface_loss.item())
+    (D_loss + 0.3*D_rec_loss + 0.3*D_arcface_loss).backward()
     # f_optimizer.step()
     d_optimizer.step()
     # c_optimizer.step()
@@ -233,11 +243,10 @@ for it in range(150000):
     g_optimizer.zero_grad()
     # arcface_optimizer.zero_grad()
 
-   #  fake, fake_16, fake_32, fake_64 = g_net(embeddings)
-    fake, _ = g_net([embeddings, ])
+    fake, _ = g_net(embeddings)
     with torch.no_grad():
-        fake_score_out = d_net(fake)
-        real_score_out = d_net(face)
+        fake_score_out, _ = d_net(fake)
+        real_score_out, _ = d_net(face)
     # fake_label_out = c_net(fake)
     # with torch.no_grad():
     # fake_feature_out = F.normalize(f_net(fake).squeeze())
@@ -250,8 +259,6 @@ for it in range(150000):
     arcface_loss = l2_loss(F.normalize(arcface_fake_embedding, dim=1), F.normalize(arcface_real_embedding, dim=1))
     G_contrastive_loss = dual_contrastive_loss(fake_score_out, real_score_out)
     perc_loss = lpips_loss(fake, face).mean()
-    # print(arcface_loss, perc_loss, G_contrastive_loss)
-
     # GD_fake_loss = F.binary_cross_entropy(torch.sigmoid(fake_score_out), real_label.float())
     # GC_fake_loss = 0.5 * F.nll_loss(F.log_softmax(fake_label_out, 1), label)
     # Embedded_contrastive_loss = 0.5 * sup_contratsive_loss(fake_feature_out, real_feature_out, voice_label)
