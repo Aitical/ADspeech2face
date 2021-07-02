@@ -133,6 +133,6 @@ if __name__ == "__main__":
     celeb_face = CelebFace(args.img_path, index_list=index_list, tag=args.tag, transforms=test_trans)
     print(len(celeb_face))
     # vgg_face = VGGFace(root=args.img_path, transforms=test_trans)
-    face_loader = DataLoader(celeb_face, batch_size=512, shuffle=False, num_workers=16)
+    face_loader = DataLoader(celeb_face, batch_size=64, shuffle=False, num_workers=16)
 
     inference_vggface(args.weight, args.network, face_loader, args.save_path)
