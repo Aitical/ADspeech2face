@@ -19,7 +19,7 @@ dataset_config = {
 }
 
 
-experiment_name = 'LightGAN'
+experiment_name = 'styleGAN2'
 experiment_path = './experiments'
 
 NETWORKS_PARAMETERS = {

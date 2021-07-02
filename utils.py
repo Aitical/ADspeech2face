@@ -111,7 +111,7 @@ def get_fbank(voice, mfc_obj):
     return fbank
 
 
-def voice2face(e_net, g_net, voice_file, vad_obj, mfc_obj, GPU=True):
+def voice2face(e_net, g_net, voice_file, vad_obj, mfc_obj, GPU=True, stylegan=False):
     vad_voice = rm_sil(voice_file, vad_obj)
     fbank = get_fbank(vad_voice, mfc_obj)
     fbank = fbank.T[np.newaxis, ...]
@@ -119,9 +119,16 @@ def voice2face(e_net, g_net, voice_file, vad_obj, mfc_obj, GPU=True):
     
     if GPU:
         fbank = fbank.cuda()
+    # print(fbank.shape)
     embedding = e_net(fbank)
     embedding = F.normalize(embedding)
-    face = g_net(embedding)
+    if stylegan:
+        embedding = embedding.reshape(1, -1)
+        # print(embedding.shape)
+       #  embedding = [embedding, ]
+        face, _ = g_net([embedding, ])
+    else:
+        face = g_net(embedding)
     if isinstance(face, list):
         face=face[0]
     return face
