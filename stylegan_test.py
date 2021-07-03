@@ -5,7 +5,7 @@ import torchvision.utils as vutils
 import webrtcvad
 
 from mfcc import MFCC
-from configs.lightg import dataset_config, NETWORKS_PARAMETERS
+from configs.config254 import dataset_config, NETWORKS_PARAMETERS
 from models import get_network
 # from dataset import VoxCeleb1DataSet
 from utils import voice2face
