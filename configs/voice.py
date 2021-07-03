@@ -10,7 +10,7 @@ dataset_config = {
     'num_workers': 4,
     'collate_fn': voice_collate_fn,
     'sample_num': 2,
-    'iters': 50000,
+    'iters': 20000,
     # test data
     'test_path': '/home/aitical/data4t2/voxceleb/test',
     'save_path': './experiments/voice.pt'

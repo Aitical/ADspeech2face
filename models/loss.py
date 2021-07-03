@@ -48,6 +48,6 @@ class SupContrastiveLoss(nn.Module):
         # BxB
         label_matrix = label.eq(label.t()).float()
         reg_value = 1 / label_matrix.sum(dim=1, keepdim=True)
-        logits = -torch.log(sim/sim.sum(dim=1, keepdim=True)) * label_matrix
-        loss = torch.sum(logits)
+        logits = -torch.log(sim/sim.sum(dim=1, keepdim=True)) * label_matrix * reg_value
+        loss = torch.sum(logits, dim=1).mean()
         return loss
