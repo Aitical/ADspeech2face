@@ -16,7 +16,8 @@ import importlib
 
 from dataset import VoxCeleb1DataSet, cycle_data
 from torchvision.transforms import transforms
-from models import resnet50
+from models import resnet50, resnet18
+from models.stylegan2 import Discriminator
 
 config_name = sys.argv[1]
 config_module = importlib.import_module(f'configs.{config_name}')
@@ -70,15 +71,17 @@ data_iter = cycle_data(train_loader)
 # networks, Fe, Fg, Fd (f+d), Fc (f+c)
 print('Initializing networks...')
 # e_net, e_optimizer = get_network('e', NETWORKS_PARAMETERS, train=False)
-e_net, e_optimizer = resnet50(pretrained=False, num_classes=1024), None
-e_net.load_state_dict(torch.load('./experiments/voice.pt', map_location='cpu'))
+e_net, e_optimizer = resnet18(pretrained=False, num_classes=512), None
+e_net.load_state_dict(torch.load('./experiments/voice_res18.pt', map_location='cpu'))
 e_net.eval()
+
 for param in e_net.parameters():
     param.requires_grad = False
 
 if NETWORKS_PARAMETERS['multi_gpu']:
     e_net = torch.nn.DataParallel(e_net)
 e_net.cuda()
+# print('resnet')
 g_net, g_optimizer = get_network('g', NETWORKS_PARAMETERS, train=True)
 
 d_net = ResD(NETWORKS_PARAMETERS['f']['input_channel'], NETWORKS_PARAMETERS['f']['channels'])
@@ -239,9 +242,10 @@ for it in range(150000):
     # print(f_net(fake).shape)
 
     reconstruction_loss = l1_loss(fake, face)
-    arcface_real_embedding = arcface(face)
-    arcface_fake_embedding = arcface(fake)
-    arcface_loss = l2_loss(F.normalize(arcface_fake_embedding, dim=1), F.normalize(arcface_real_embedding, dim=1))
+    arcface_real_embedding = arcface(face, embedding=False)
+    arcface_fake_embedding = arcface(fake, embedding=False)
+    # arcface_loss = l2_loss(F.normalize(arcface_fake_embedding, dim=1), F.normalize(arcface_real_embedding, dim=1))
+    arcface_loss = l2_loss(arcface_fake_embedding, arcface_real_embedding)
     G_contrastive_loss = dual_contrastive_loss(fake_score_out, real_score_out)
 
     # GD_fake_loss = F.binary_cross_entropy(torch.sigmoid(fake_score_out), real_label.float())

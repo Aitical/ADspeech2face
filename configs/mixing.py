@@ -8,17 +8,17 @@ dataset_config = {
     # voice dataset
     'voice_ext': 'npy',
     'img_ext': 'jpg',
-    'batch_size': 32,
+    'batch_size': 64,
     'voice_frame': [300, 600],
     'num_workers': 4,
     'collate_fn': voxceleb1_collate_fn,
-    'sample_num': 2,
+    'sample_num': 1,
     # test data
     'test_path': '/home/aitical/data4t2/voxceleb/test'
 }
 
 
-experiment_name = 'MixingG'
+experiment_name = 'res18_512_MixingG_64_1'
 experiment_path = './experiments'
 
 NETWORKS_PARAMETERS = {
@@ -33,7 +33,7 @@ NETWORKS_PARAMETERS = {
     # GENERATOR (g)
     'g': {
         'network': MixingG,
-        'input_channel': 64,
+        'input_channel': 512,
         'channels': [1024, 512, 256, 128, 64],  # channels for deconvolutional layers
         'output_channel': 3,  # images with RGB channels
         'model_path': f'./experiments/{experiment_name}/generator_l1_edsr_16_64.pth',
