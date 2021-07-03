@@ -50,13 +50,14 @@ for i in train_bar:
     l2 = random.randint(400, 600)
     pt1 = random.randint(0, 100)
     pt2 = random.randint(0, 100)
+    
     voice1, voice2 = voice_batch[:, :, pt1:pt1+l1], voice_batch[:, :, pt2:pt2+l2]
     voice2 = 0.1 * torch.rand_like(voice2) + voice2
     voice1, voice2 = voice1.cuda(), voice2.cuda()
     label = label.cuda()
 
-    f1 = model(voice1.unsqueeze(1))
-    f2 = model(voice2.unsqueeze(1))
+    f1 = model(voice1)
+    f2 = model(voice2)
     f1 = F.normalize(f1, dim=1)
     f2 = F.normalize(f2, dim=1)
     loss = sup_contrastive_loss(f1, f2, label)

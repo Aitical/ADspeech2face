@@ -39,6 +39,10 @@ class SupContrastiveLoss(nn.Module):
         self.t = temperature
 
     def forward(self, x1, x2, label):
+        if len(x1.shape) > 2:
+            x1 = x1.squeeze()
+            x2 = x2.squeeze()
+            assert len(x1.shape)==2
         # x1 = x1.view(x1.size()[0], -1)
         # x2 = x2.view(x2.size()[0], -1)
         # BxB
