@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from models import get_network, SimCLRLoss, SupContrastiveLoss, ResD, dual_contrastive_loss
 from models.stylegan2 import Generator, Discriminator
 from criteria import LPIPS
-
+from models import gen_hinge_loss, hinge_loss
 from utils import Meter, cycle_voice, cycle_face, save_model
 from edsr.model import Model
 import cv2
@@ -179,10 +179,10 @@ for it in range(150000):
     embeddings = e_net(voice)
     embeddings = F.normalize(embeddings)
     # introduce some permutations
-    noise = 0.05*torch.rand_like(embeddings, device=embeddings.device)
+    # noise = 0.05*torch.rand_like(embeddings, device=embeddings.device)
     # print(embeddings.shape, noise.shape)
-    embeddings = embeddings + noise
-    embeddings = F.normalize(embeddings)
+    # embeddings = embeddings + noise
+    # embeddings = F.normalize(embeddings)
     real_label = torch.ones((embeddings.shape[0], 1), device=embeddings.device)
     fake_label = torch.zeros_like(real_label, device=embeddings.device)
     # print(embeddings.shape)
@@ -218,7 +218,7 @@ for it in range(150000):
     # D_real_loss = F.binary_cross_entropy(torch.sigmoid(real_score_out), real_label.float())
     # D_fake_loss = F.binary_cross_entropy(torch.sigmoid(fake_score_out), fake_label.float())
     # C_real_loss = F.nll_loss(F.log_softmax(real_label_out, 1), label)
-    D_loss = dual_contrastive_loss(real_score_out, fake_score_out)
+    D_loss = hinge_loss(real_score_out, fake_score_out)# dual_contrastive_loss(real_score_out, fake_score_out)
     # D_arcface_loss = l2_loss(F.normalize(fake_rec_embd, dim=1), F.normalize(real_rec_embd, dim=1))
     # D_rec_loss = l1_loss(real_rec, face)
     # reconstruction_loss = l1_loss()
@@ -249,7 +249,7 @@ for it in range(150000):
     arcface_real_embedding = arcface(face)
     arcface_fake_embedding = arcface(fake)
     arcface_loss = l2_loss(F.normalize(arcface_fake_embedding, dim=1), F.normalize(arcface_real_embedding, dim=1))
-    G_contrastive_loss = dual_contrastive_loss(fake_score_out, real_score_out)
+    G_contrastive_loss = gen_hinge_loss(fake_score_out, real_score_out)  # dual_contrastive_loss(fake_score_out, real_score_out)
     perc_loss = lpips_loss(fake, face).mean()
     # print(arcface_loss, perc_loss, G_contrastive_loss)
 

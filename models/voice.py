@@ -259,6 +259,64 @@ class Bottleneck(nn.Module):
         return out
 
 
+class ResBlock(nn.Module):
+    def __init__(self, in_channel):
+        super(ResBlock, self).__init__()
+        self.conv1 = nn.Sequential(
+            nn.Conv1d(in_channels=in_channel, out_channels=in_channel*2, kernel_size=3, padding=1),
+            nn.BatchNorm1d(in_channel*2),
+            nn.ReLU(),
+            nn.Conv1d(in_channels=in_channel*2, out_channels=in_channel, kernel_size=3, padding=1),
+            nn.BatchNorm1d(in_channel),
+            nn.ReLU()
+        )
+    def forward(self, x):
+        x1 = self.conv1(x)
+        return x1+x
+
+
+class VoiceCNN(nn.Module):
+    def __init__(self, input_channel, rate=1):
+        super(VoiceCNN, self).__init__()
+        self.channels = [int(i*rate) for i in [64, 128, 256, 512]]
+        self.layer1 = nn.Sequential(
+            nn.Conv1d(in_channels=input_channel, out_channels=self.channels[0], kernel_size=3, ),
+            nn.BatchNorm1d(self.channels[0]),
+            nn.ReLU(),
+            ResBlock(self.channels[0])
+        )
+        self.layer2 = nn.Sequential(
+            nn.Conv1d(in_channels=self.channels[0], out_channels=self.channels[1], kernel_size=3, ),
+            nn.BatchNorm1d(self.channels[1]),
+            nn.ReLU(),
+            ResBlock(self.channels[1])
+        )
+        self.layer3 = nn.Sequential(
+            nn.Conv1d(in_channels=self.channels[1], out_channels=self.channels[2], kernel_size=3, ),
+            nn.BatchNorm1d(self.channels[2]),
+            nn.ReLU(),
+            ResBlock(self.channels[2])
+        )
+        self.layer4 = nn.Sequential(
+            nn.Conv1d(in_channels=self.channels[2], out_channels=self.channels[3], kernel_size=3, ),
+            nn.BatchNorm1d(self.channels[3]),
+            nn.ReLU(),
+            ResBlock(self.channels[3])
+        )
+        self.to_embd = nn.Sequential(
+            nn.AdaptiveAvgPool1d(4),
+            nn.Conv1d(in_channels=self.channels[3], out_channels=self.channels[3], kernel_size=4),
+            nn.Flatten()
+        )
+
+    def forward(self, x):
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
+        x = self.to_embd(x)
+        return x
+
 def _resnet(arch, block, layers, pretrained, progress, **kwargs):
     model = ResNet(block, layers, **kwargs)
     if pretrained:

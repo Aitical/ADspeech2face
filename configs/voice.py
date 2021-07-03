@@ -2,7 +2,7 @@ from dataset import voice_collate_fn
 
 
 dataset_config = {
-    'root_path': '/home/aitical/data/voxceleb/voxceleb/train',
+    'root_path': './experiments/dataset/train',
     # voice dataset
     'voice_ext': 'npy',
     'batch_size': 64,
@@ -10,8 +10,8 @@ dataset_config = {
     'num_workers': 4,
     'collate_fn': voice_collate_fn,
     'sample_num': 2,
-    'iters': 50000,
+    'iters': 20000,
     # test data
-    'test_path': '/home/aitical/data4t2/voxceleb/test',
+    'test_path': './experiments/dataset/test',
     'save_path': './experiments/voice.pt'
 }

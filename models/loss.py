@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-
+import torch.nn.functional as F
 
 class SimCLRLoss(nn.Module):
     def __init__(self, temperature):
@@ -39,6 +39,10 @@ class SupContrastiveLoss(nn.Module):
         self.t = temperature
 
     def forward(self, x1, x2, label):
+        if len(x1.shape) > 2:
+            x1 = x1.squeeze()
+            x2 = x2.squeeze()
+            assert len(x1.shape)==2
         # x1 = x1.view(x1.size()[0], -1)
         # x2 = x2.view(x2.size()[0], -1)
         # BxB
@@ -48,6 +52,12 @@ class SupContrastiveLoss(nn.Module):
         # BxB
         label_matrix = label.eq(label.t()).float()
         reg_value = 1 / label_matrix.sum(dim=1, keepdim=True)
-        logits = -torch.log(sim/sim.sum(dim=1, keepdim=True)) * label_matrix
-        loss = torch.sum(logits)
+        logits = -torch.log(sim/sim.sum(dim=1, keepdim=True)) * label_matrix * reg_value
+        loss = torch.sum(logits, dim=1).mean()
         return loss
+
+def gen_hinge_loss(fake, real):
+    return fake.mean()
+
+def hinge_loss(real, fake):
+    return (F.relu(1 + real) + F.relu(1 - fake)).mean()
