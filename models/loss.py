@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-
+import torch.nn.functional as F
 
 class SimCLRLoss(nn.Module):
     def __init__(self, temperature):
@@ -55,3 +55,9 @@ class SupContrastiveLoss(nn.Module):
         logits = -torch.log(sim/sim.sum(dim=1, keepdim=True)) * label_matrix * reg_value
         loss = torch.sum(logits, dim=1).mean()
         return loss
+
+def gen_hinge_loss(fake, real):
+    return fake.mean()
+
+def hinge_loss(real, fake):
+    return (F.relu(1 + real) + F.relu(1 - fake)).mean()
