@@ -5,25 +5,25 @@ import torchvision.utils as vutils
 import webrtcvad
 
 from mfcc import MFCC
-from configs.lightg import dataset_config, NETWORKS_PARAMETERS
+from configs.mixing import dataset_config, NETWORKS_PARAMETERS
 from models import get_network
 # from dataset import VoxCeleb1DataSet
 from utils import voice2face
 from tqdm import tqdm
 import sys
 from models import MixingG, LightG, ResG
-from models import resnet50
+from models import resnet50, resnet18
 
 # initialization
 vad_obj = webrtcvad.Vad(2)
 mfc_obj = MFCC(nfilt=64, lowerf=20., upperf=7200., samprate=16000, nfft=1024, wlen=0.025)
-e_net = resnet50(pretrained=False, num_classes=1024)
-e_net.load_state_dict(torch.load('./experiments/voice.pt', map_location='cpu'))
+e_net = resnet18(pretrained=False, num_classes=512)
+e_net.load_state_dict(torch.load('./experiments/voice_res18.pt', map_location='cpu'))
 e_net.eval()
 e_net.cuda()
 # e_net, _ = get_network('e', NETWORKS_PARAMETERS, train=False)
 # g_net, _ = get_network('g', NETWORKS_PARAMETERS, train=False)
-g_net = LightG(1024, [1024, 512, 256, 128, 64], 3)
+g_net = MixingG(512, [1024, 512, 256, 128, 64], 3)
 #g_net = torch.nn.DataParallel(g_net)
 miss = g_net.load_state_dict(torch.load(NETWORKS_PARAMETERS['g']['model_path']))
 # torch.save(g_net.module.state_dict(), NETWORKS_PARAMETERS['g']['model_path'])

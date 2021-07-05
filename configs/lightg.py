@@ -37,7 +37,7 @@ NETWORKS_PARAMETERS = {
         'input_channel': 64,
         'channels': [1024, 512, 256, 128, 64],  # channels for deconvolutional layers
         'output_channel': 3,  # images with RGB channels
-        'model_path': f'./experiments/{experiment_name}/generator_l1_edsr_16_64.pth',
+        'model_path': f'./experiments/{experiment_name}/generator.pth',
     },
     # FACE EMBEDDING NETWORK (f)
     'f': {
