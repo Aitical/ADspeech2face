@@ -16,7 +16,7 @@ import importlib
 
 from dataset import VoxCeleb1DataSet, cycle_data
 from torchvision.transforms import transforms
-from models import resnet50
+from models.voice import ResNetSE34
 from models.stylegan2 import Generator
 from criteria import LPIPS
 
@@ -72,7 +72,7 @@ data_iter = cycle_data(train_loader)
 # networks, Fe, Fg, Fd (f+d), Fc (f+c)
 print('Initializing networks...')
 # e_net, e_optimizer = get_network('e', NETWORKS_PARAMETERS, train=False)
-e_net, e_optimizer = resnet50(pretrained=False, num_classes=1024), None
+e_net, e_optimizer = ResNetSE34(), None
 e_net.load_state_dict(torch.load('./experiments/voice.pt', map_location='cpu'))
 e_net.eval()
 for param in e_net.parameters():
