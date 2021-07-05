@@ -243,7 +243,7 @@ for it in range(150000):
     g_optimizer.zero_grad()
     # arcface_optimizer.zero_grad()
 
-    fake, _ = g_net(embeddings)
+    fake, _ = g_net([embeddings, ])
     with torch.no_grad():
         fake_score_out, _ = d_net(fake)
         real_score_out, _ = d_net(face)
