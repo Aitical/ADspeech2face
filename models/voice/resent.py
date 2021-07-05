@@ -2,7 +2,6 @@
 # -*- encoding: utf-8 -*-
 
 import torch
-import torchaudio
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Parameter
@@ -32,9 +31,6 @@ class ResNetSE(nn.Module):
         self.layer4 = self._make_layer(block, num_filters[3], layers[3], stride=(1, 1))
 
         self.instancenorm = nn.InstanceNorm1d(n_mels)
-        self.torchfb = torchaudio.transforms.MelSpectrogram(sample_rate=16000, n_fft=512, win_length=400,
-                                                            hop_length=160, window_fn=torch.hamming_window,
-                                                            n_mels=n_mels)
 
         if self.encoder_type == "SAP":
             self.sap_linear = nn.Linear(num_filters[3] * block.expansion, num_filters[3] * block.expansion)
