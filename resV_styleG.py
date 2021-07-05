@@ -81,7 +81,7 @@ if NETWORKS_PARAMETERS['multi_gpu']:
     e_net = torch.nn.DataParallel(e_net)
 e_net.cuda()
 # g_net, g_optimizer = get_network('g', NETWORKS_PARAMETERS, train=True)
-g_net = Generator(128, 512, 4)
+g_net = Generator(128, 512, 8)
 if NETWORKS_PARAMETERS['multi_gpu']:
     g_net = torch.nn.DataParallel(g_net)
 g_net.cuda()
