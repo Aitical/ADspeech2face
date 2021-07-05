@@ -73,7 +73,6 @@ data_iter = cycle_data(train_loader)
 print('Initializing networks...')
 # e_net, e_optimizer = get_network('e', NETWORKS_PARAMETERS, train=False)
 e_net, e_optimizer = ResNetSE34(), None
-e_net.load_state_dict(torch.load('./experiments/voice.pt', map_location='cpu'))
 e_net.eval()
 for param in e_net.parameters():
     param.requires_grad = False
@@ -82,7 +81,7 @@ if NETWORKS_PARAMETERS['multi_gpu']:
     e_net = torch.nn.DataParallel(e_net)
 e_net.cuda()
 # g_net, g_optimizer = get_network('g', NETWORKS_PARAMETERS, train=True)
-g_net = Generator(128, 1024, 8)
+g_net = Generator(128, 512, 4)
 if NETWORKS_PARAMETERS['multi_gpu']:
     g_net = torch.nn.DataParallel(g_net)
 g_net.cuda()
