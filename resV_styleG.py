@@ -4,12 +4,9 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
-# from parse_dataset import get_dataset
 from models import get_network, SimCLRLoss, SupContrastiveLoss, ResD, dual_contrastive_loss
-from utils import Meter, cycle_voice, cycle_face, save_model
+from utils import Meter, save_model
 from edsr.model import Model
-import cv2
-from einops import rearrange, repeat
 import math
 import sys
 import importlib
