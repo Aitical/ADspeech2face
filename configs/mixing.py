@@ -18,7 +18,7 @@ dataset_config = {
 }
 
 
-experiment_name = 'res18_512_MixingG_64_1'
+experiment_name = 'sss18_512_MixingG_64_1'
 experiment_path = './experiments'
 
 NETWORKS_PARAMETERS = {
