@@ -117,5 +117,6 @@ def ResNetSE34(nOut=512, **kwargs):
     if pretrained is not None:
         print('load pretrained model from %s' % pretrained)
         state_dict = torch.load(pretrained, map_location='cpu')
-        model.load_state_dict(state_dict)
+        miss = model.load_state_dict(state_dict, strict=False)
+        print(miss)
     return model
