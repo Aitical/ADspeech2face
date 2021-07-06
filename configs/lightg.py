@@ -1,4 +1,4 @@
-from models import VoiceEmbedNet, Generator, FaceEmbedNet, Classifier, BasicGenerator, BSEGenerator, LightG, ResD
+from models import VoiceEmbedNet, Generator, FaceEmbedNet, Classifier, BasicGenerator, BSEGenerator, LightG, ResD, VLightG
 from dataset import voxceleb1_collate_fn
 from backbones import iresnet34
 
@@ -33,8 +33,8 @@ NETWORKS_PARAMETERS = {
     },
     # GENERATOR (g)
     'g': {
-        'network': LightG,
-        'input_channel': 64,
+        'network': VLightG,
+        'input_channel': 512,
         'channels': [1024, 512, 256, 128, 64],  # channels for deconvolutional layers
         'output_channel': 3,  # images with RGB channels
         'model_path': f'./experiments/{experiment_name}/generator.pth',

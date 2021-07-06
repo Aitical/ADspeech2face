@@ -71,16 +71,16 @@ data_iter = cycle_data(train_loader)
 # networks, Fe, Fg, Fd (f+d), Fc (f+c)
 print('Initializing networks...')
 # e_net, e_optimizer = get_network('e', NETWORKS_PARAMETERS, train=False)
-e_net, e_optimizer = ResNetSE34(), None # resnet18(pretrained=False, num_classes=512), None
+# e_net, e_optimizer = ResNetSE34(), None # resnet18(pretrained=False, num_classes=512), None
 # e_net.load_state_dict(torch.load('./experiments/voice_res18.pt', map_location='cpu'))
-e_net.eval()
-
-for param in e_net.parameters():
-    param.requires_grad = False
-
-if NETWORKS_PARAMETERS['multi_gpu']:
-    e_net = torch.nn.DataParallel(e_net)
-e_net.cuda()
+# e_net.eval()
+#
+# for param in e_net.parameters():
+#     param.requires_grad = False
+#
+# if NETWORKS_PARAMETERS['multi_gpu']:
+#     e_net = torch.nn.DataParallel(e_net)
+# e_net.cuda()
 
 # print('resnet')
 g_net, g_optimizer = get_network('g', NETWORKS_PARAMETERS, train=True)
@@ -173,22 +173,14 @@ for it in range(150000):
         face_vector = torch.mean(lr_16, dim=[2, 3])
         face_vector = torch.nn.functional.normalize(face_vector, dim=1)
 
-    # get embeddings and generated faces
-    embeddings = e_net(voice)
-    embeddings = F.normalize(embeddings)
-    # introduce some permutations
-    noise = 0.05*torch.rand_like(embeddings, device=embeddings.device)
-    # print(embeddings.shape, noise.shape)
-    embeddings = embeddings + noise
-    embeddings = F.normalize(embeddings)
-    real_label = torch.ones((embeddings.shape[0], 1), device=embeddings.device)
-    fake_label = torch.zeros_like(real_label, device=embeddings.device)
+    real_label = torch.ones((voice.shape[0], 1), device=voice.device)
+    fake_label = torch.zeros_like(real_label, device=voice.device)
     # print(embeddings.shape)
 
     # loss1 = 0.1*(contrastive_loss(embeddings.squeeze(), face_vector) + contrastive_loss(face_vector, embeddings.squeeze()))
 
     with torch.no_grad():
-        fake, _, _, _ = g_net(embeddings)
+        fake, _, _, _ = g_net(voice)
     # print(fake.shape, fake_16.shape, fake_64.shape)
     # print(fake.shape)
     # Discriminator
@@ -232,7 +224,7 @@ for it in range(150000):
     g_optimizer.zero_grad()
     # arcface_optimizer.zero_grad()
 
-    fake, fake_16, fake_32, fake_64 = g_net(embeddings)
+    fake, fake_16, fake_32, fake_64 = g_net(voice)
     with torch.no_grad():
         fake_score_out, _ = d_net(fake)
         real_score_out, _ = d_net(face)
