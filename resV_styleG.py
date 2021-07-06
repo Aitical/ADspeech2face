@@ -81,7 +81,7 @@ if NETWORKS_PARAMETERS['multi_gpu']:
     e_net = torch.nn.DataParallel(e_net)
 e_net.cuda()
 # g_net, g_optimizer = get_network('g', NETWORKS_PARAMETERS, train=True)
-g_net = Generator(128, 512, 4)
+g_net = Generator(128, 512, 8)
 if NETWORKS_PARAMETERS['multi_gpu']:
     g_net = torch.nn.DataParallel(g_net)
 g_net.cuda()
@@ -242,7 +242,7 @@ for it in range(150000):
     g_optimizer.zero_grad()
     # arcface_optimizer.zero_grad()
 
-    fake, _ = g_net(embeddings)
+    fake, _ = g_net([embeddings, ])
     with torch.no_grad():
         fake_score_out, _ = d_net(fake)
         real_score_out, _ = d_net(face)
