@@ -120,8 +120,11 @@ def voice2face(e_net, g_net, voice_file, vad_obj, mfc_obj, GPU=True, stylegan=Fa
     if GPU:
         fbank = fbank.cuda()
     # print(fbank.shape)
-    embedding = e_net(fbank)
-    embedding = F.normalize(embedding)
+    if e_net is not None:
+        embedding = e_net(fbank)
+        embedding = F.normalize(embedding)
+    else:
+        embedding = fbank
     if stylegan:
         embedding = embedding.reshape(1, -1)
         # print(embedding.shape)
