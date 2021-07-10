@@ -125,7 +125,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
 
-    test_trans = transforms.Compose([transforms.ToTensor()],)
+    test_trans = transforms.Compose([transforms.ToTensor()])
                                      #transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])])
     raw_embedding = torch.load(args.anchor_embedding)
     index_list = np.unique(raw_embedding['targets'])

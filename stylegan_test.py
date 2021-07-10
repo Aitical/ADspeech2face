@@ -12,14 +12,17 @@ from utils import voice2face
 from tqdm import tqdm
 import sys
 from models.stylegan2 import Generator
-
+from models.voice import ResNetSE34
 
 # initialization
 vad_obj = webrtcvad.Vad(2)
 mfc_obj = MFCC(nfilt=64, lowerf=20., upperf=7200., samprate=16000, nfft=1024, wlen=0.025)
-e_net, _ = get_network('e', NETWORKS_PARAMETERS, train=False)
+# e_net, _ = get_network('e', NETWORKS_PARAMETERS, train=False)
+e_net = ResNetSE34()
+e_net.eval()
+e_net.cuda()
 # g_net, _ = get_network('g', NETWORKS_PARAMETERS, train=False)
-g_net = Generator(128, 64, 4)
+g_net = Generator(128, 512, 8)
 #g_net = torch.nn.DataParallel(g_net)
 miss = g_net.load_state_dict(torch.load(NETWORKS_PARAMETERS['g']['model_path']))
 # torch.save(g_net.module.state_dict(), NETWORKS_PARAMETERS['g']['model_path'])
