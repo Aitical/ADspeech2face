@@ -3,115 +3,45 @@ import time
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-from torch.utils.data import DataLoader
-# from parse_dataset import get_dataset
-from models import get_network, SimCLRLoss, SupContrastiveLoss, ResD, dual_contrastive_loss
-from utils import Meter, cycle_voice, cycle_face, save_model
-from edsr.model import Model
-import cv2
-from einops import rearrange, repeat
+
+from models import SimCLRLoss, SupContrastiveLoss, dual_contrastive_loss
+from utils import Meter, save_model
+
 import math
 import sys
 import importlib
 
-from dataset import VoxCeleb1DataSet, cycle_data
-from torchvision.transforms import transforms
-from models.voice import ResNetSE34
-from models.stylegan2 import Discriminator
+from configs import model_config
+from parse_config import get_data, get_model, get_edsr
 
-config_name = sys.argv[1]
-config_module = importlib.import_module(f'configs.{config_name}')
+# config_name = sys.argv[1]
+# config_module = importlib.import_module(f'configs.{config_name}')
 
-dataset_config = config_module.dataset_config
-NETWORKS_PARAMETERS = config_module.NETWORKS_PARAMETERS
-experiment_name = config_module.experiment_name
-experiment_path = config_module.experiment_path
 
+# NETWORKS_PARAMETERS = config_module.NETWORKS_PARAMETERS
+experiment_name = model_config.training_config['exp_name']
+experiment_path = model_config.training_config['exp_path']
+save_path = os.path.join(experiment_path, experiment_name)
 os.makedirs(os.path.join(experiment_path, experiment_name), exist_ok=True)
 # dataset and dataloader
 
 
 print('Parsing your dataset...')
+data_iter = get_data()
 
+print('Making models')
+e_net = get_model(model_config.voice_encoder)
 
-face_transform = transforms.Compose(
-    [transforms.ToTensor(),
-     transforms.Normalize(mean=[0.5, 0.5, 0.5],
-                          std=[0.5, 0.5, 0.5])
-     ]
-)
-voice_trans = transforms.Compose(
-    [
-        torch.tensor
-    ]
-)
-vxc_dataset = VoxCeleb1DataSet(
-    root_path=dataset_config['root_path'],
-    voice_frame=dataset_config['voice_frame'],
-    voice_ext=dataset_config['voice_ext'],
-    img_ext=dataset_config['img_ext'],
-    voice_transform=voice_trans,
-    img_transform=face_transform,
-    sample_num=dataset_config['sample_num']
-)
+g_net = get_model(model_config.generator)
+g_optimizer = optim.Adam(g_net.parameters(), **model_config.training_config['optimizer'])
 
-dataset_batch_size = dataset_config['batch_size']*dataset_config['sample_num']
-NETWORKS_PARAMETERS['c']['output_channel'] = vxc_dataset.num_classes
-print(len(vxc_dataset))
-train_loader = DataLoader(
-    vxc_dataset,
-    shuffle=True,
-    batch_size=dataset_config['batch_size'],
-    num_workers=dataset_config['num_workers'],
-    collate_fn=dataset_config['collate_fn']
-)
+d_net = get_model(model_config.discriminator)
+d_optimizer = optim.Adam(d_net.parameters(), **model_config.training_config['optimizer'])
 
-data_iter = cycle_data(train_loader)
+arcface = get_model(model_config.arcface)
+sr_model = get_edsr()
+print('Model Prepared')
 
-# networks, Fe, Fg, Fd (f+d), Fc (f+c)
-print('Initializing networks...')
-# e_net, e_optimizer = get_network('e', NETWORKS_PARAMETERS, train=False)
-# e_net, e_optimizer = ResNetSE34(), None # resnet18(pretrained=False, num_classes=512), None
-# e_net.load_state_dict(torch.load('./experiments/voice_res18.pt', map_location='cpu'))
-# e_net.eval()
-#
-# for param in e_net.parameters():
-#     param.requires_grad = False
-#
-# if NETWORKS_PARAMETERS['multi_gpu']:
-#     e_net = torch.nn.DataParallel(e_net)
-# e_net.cuda()
-
-# print('resnet')
-g_net, g_optimizer = get_network('g', NETWORKS_PARAMETERS, train=True)
-
-d_net = ResD(NETWORKS_PARAMETERS['f']['input_channel'], NETWORKS_PARAMETERS['f']['channels'])
-if NETWORKS_PARAMETERS['multi_gpu']:
-    d_net = torch.nn.DataParallel(d_net)
-d_net.cuda()
-d_optimizer = optim.Adam(d_net.parameters(),
-                               lr=NETWORKS_PARAMETERS['lr'],
-                               betas=(NETWORKS_PARAMETERS['beta1'],NETWORKS_PARAMETERS['beta2']))
-sr_model = Model('./pretrained_models/edsr_model/model_best.pt')
-sr_model = sr_model.model
-sr_model.eval()
-for param in sr_model.parameters():
-    param.requires_grad = False
-
-if NETWORKS_PARAMETERS['multi_gpu']:
-    sr_model = torch.nn.DataParallel(sr_model)
-sr_model.cuda()
-print('SR model loaded')
-# f_net, f_optimizer = get_network('f', NETWORKS_PARAMETERS, train=True)
-# d_net, d_optimizer = get_network('d', NETWORKS_PARAMETERS, train=True)
-# c_net, c_optimizer = get_network('c', NETWORKS_PARAMETERS, train=True)
-
-arcface, arcface_optimizer = get_network('arcface', NETWORKS_PARAMETERS, train=False)
-print('arcface loadded')
-
-# label for real/fake faces
-real_label = torch.full((dataset_batch_size, 1), 1)
-fake_label = torch.full((dataset_batch_size, 1), 0)
 
 # Meters for recording the training status
 iteration = Meter('Iter', 'sum', ':5d')
@@ -154,15 +84,7 @@ for it in range(150000):
     label = label.cuda()
     face_lr = face_lr.cuda()
     # noise = noise.cuda()
-
-
-    # # use GPU or not
-    # if NETWORKS_PARAMETERS['GPU']:
-    #     voice, voice_label = voice.cuda(), voice_label.cuda()
-    #     print(voice.shape)
-    #     face, face_label, face_lr = face.cuda(), face_label.cuda(), face_lr.cuda()
-    #     real_label, fake_label = real_label.cuda(), fake_label.cuda()
-    #     noise = noise.cuda()
+    voice = e_net(voice)
 
     data_time.update(time.time() - start_time)
 
@@ -285,12 +207,7 @@ for it in range(150000):
 
         # snapshot
 
-        save_model(g_net.module, NETWORKS_PARAMETERS['g']['model_path'], NETWORKS_PARAMETERS['multi_gpu'])
+        save_model(g_net.module, save_path)
 
-
-        # save_model(e_net, NETWORKS_PARAMETERS['e']['model_path'])
-        # save_model(f_net, NETWORKS_PARAMETERS['f']['model_path'])
-        # save_model(d_net, NETWORKS_PARAMETERS['d']['model_path'])
-        # save_model(c_net, NETWORKS_PARAMETERS['c']['model_path'])
     iteration.update(1)
 
