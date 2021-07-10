@@ -1,13 +1,12 @@
 import torch
 from torchvision import transforms
-
 import configs.criteria
 from dataset import VoxCeleb1DataSet
-from configs.data_config import dataset_config
 from torch.utils.data import DataLoader
 from dataset import cycle_data
 from configs import model_config
-from edsr.model import Model
+from configs.model_config import dataset_config
+
 
 def get_data():
     face_transform = transforms.Compose(
@@ -73,6 +72,7 @@ def get_edsr():
     model = torch.nn.DataParallel(model)
     model.cuda()
     return model
+
 
 def get_arcface():
     arcface = get_model(model_config.arcface)

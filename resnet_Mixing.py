@@ -11,16 +11,15 @@ import math
 import sys
 import importlib
 
-from configs import model_config
 from parse_config import get_data, get_model, get_edsr
 
-# config_name = sys.argv[1]
-# config_module = importlib.import_module(f'configs.{config_name}')
 
+config_name = sys.argv[1]
+model_config = importlib.import_module(f'configs.{config_name}')
 
 # NETWORKS_PARAMETERS = config_module.NETWORKS_PARAMETERS
-experiment_name = model_config.training_config['exp_name']
-experiment_path = model_config.training_config['exp_path']
+experiment_name = model_config.exp_name
+experiment_path = model_config.exp_path
 save_path = os.path.join(experiment_path, experiment_name)
 os.makedirs(os.path.join(experiment_path, experiment_name), exist_ok=True)
 # dataset and dataloader
