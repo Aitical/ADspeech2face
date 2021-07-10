@@ -4,12 +4,9 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
-# from parse_dataset import get_dataset
 from models import get_network, SimCLRLoss, SupContrastiveLoss, ResD, dual_contrastive_loss
-from utils import Meter, cycle_voice, cycle_face, save_model
+from utils import Meter, save_model
 from edsr.model import Model
-import cv2
-from einops import rearrange, repeat
 import math
 import sys
 import importlib
@@ -204,16 +201,17 @@ for it in range(150000):
     # Discriminator
     # e_optimizer.zero_grad()
     # f_optimizer.zero_grad()
-    d_optimizer.zero_grad()
+
     # c_optimizer.zero_grad()
     # arcface_optimizer.zero_grad()
     # arcface_optimizer.zero_grad()
+    for _ in range(5):
+        d_optimizer.zero_grad()
+        real_score_out, real_rec = d_net(face)
+        fake_score_out, fake_rec = d_net(fake)
 
-    real_score_out, real_rec = d_net(face)
-    fake_score_out, fake_rec = d_net(fake)
-
-    real_rec_embd = arcface(real_rec)
-    fake_rec_embd = arcface(fake_rec)
+        real_rec_embd = arcface(real_rec)
+        fake_rec_embd = arcface(fake_rec)
 
     # real_label_out = c_net(f_net(face))
     # clip_feature = F.normalize(f_net(face).squeeze())
@@ -226,16 +224,16 @@ for it in range(150000):
     # D_real_loss = F.binary_cross_entropy(torch.sigmoid(real_score_out), real_label.float())
     # D_fake_loss = F.binary_cross_entropy(torch.sigmoid(fake_score_out), fake_label.float())
     # C_real_loss = F.nll_loss(F.log_softmax(real_label_out, 1), label)
-    D_loss = dual_contrastive_loss(real_score_out, fake_score_out)
-    D_arcface_loss = l2_loss(F.normalize(fake_rec_embd, dim=1), F.normalize(real_rec_embd, dim=1))
-    D_rec_loss = l1_loss(real_rec, face)
+        D_loss = dual_contrastive_loss(real_score_out, fake_score_out)
+        D_arcface_loss = l2_loss(F.normalize(fake_rec_embd, dim=1), F.normalize(real_rec_embd, dim=1))
+        D_rec_loss = l1_loss(real_rec, face)
     # reconstruction_loss = l1_loss()
 
-    D_real.update(D_loss.item())
-    C_real.update(D_arcface_loss.item())
-    (D_loss + 0.3*D_rec_loss + 0.3*D_arcface_loss).backward()
+        D_real.update(D_loss.item())
+        C_real.update(D_arcface_loss.item())
+        (D_loss + 0.3*D_rec_loss + 0.3*D_arcface_loss).backward()
     # f_optimizer.step()
-    d_optimizer.step()
+        d_optimizer.step()
     # c_optimizer.step()
 
     # Generator

@@ -57,14 +57,14 @@ def cycle_face(dataloader):
         for data, label, lr in dataloader:
             yield data, label, lr
 
-def save_model(net, model_path, multi_gpu=False):
+
+def save_model(net, model_path,):
     model_dir = os.path.dirname(model_path)
     if not os.path.exists(model_dir):
        os.makedirs(model_dir)
-    if multi_gpu:
-        torch.save(net.state_dict(), model_path)
-    else:
-        torch.save(net.state_dict(), model_path)
+
+    torch.save(net.state_dict(), model_path)
+
 
 def rm_sil(voice_file, vad_obj):
     """
@@ -120,8 +120,11 @@ def voice2face(e_net, g_net, voice_file, vad_obj, mfc_obj, GPU=True, stylegan=Fa
     if GPU:
         fbank = fbank.cuda()
     # print(fbank.shape)
-    embedding = e_net(fbank)
-    embedding = F.normalize(embedding)
+    if e_net is not None:
+        embedding = e_net(fbank)
+        embedding = F.normalize(embedding)
+    else:
+        embedding = fbank
     if stylegan:
         embedding = embedding.reshape(1, -1)
         # print(embedding.shape)
