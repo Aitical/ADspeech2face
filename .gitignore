@@ -12,6 +12,8 @@ data/
 experiments/
 
 configs/config254.py
+node_modules/
+*.json
 # Distribution / packaging
 .Python
 build/

@@ -68,7 +68,7 @@ class CelebFace(Dataset):
         targets = []
         for name in self.names:
             id_path = os.path.join(root, name)
-            current_id_imgs = [str(i) for i in pathlib.Path(id_path).glob(f'*/*{tag}.png')]
+            current_id_imgs = [str(i) for i in pathlib.Path(id_path).glob(f'*/*_{tag}.png')]
             file_path.extend(current_id_imgs)
             targets.extend([name for i in range(len(current_id_imgs))])
 
@@ -105,15 +105,13 @@ def inference_vggface(weight, name, dataloader, save_path):
         features.append(feat)
         targets.extend(labels)
     features = torch.cat(features, dim=0)
-    # targets = torch.cat(targets, dim=0)
-    # print(features.shape, len(targets))
     results = {'features': features, 'targets': targets}
     torch.save(results, save_path)
     return results
 
 if __name__ == "__main__":
 
-    
+
     parser = argparse.ArgumentParser(description='PyTorch ArcFace Training')
     parser.add_argument('--network', type=str, default='r50', help='backbone network')
     parser.add_argument('--weight', type=str, default='')
@@ -126,10 +124,9 @@ if __name__ == "__main__":
 
 
     test_trans = transforms.Compose([transforms.ToTensor()])
-                                     #transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])])
     raw_embedding = torch.load(args.anchor_embedding)
     index_list = np.unique(raw_embedding['targets'])
-    
+
     celeb_face = CelebFace(args.img_path, index_list=index_list, tag=args.tag, transforms=test_trans)
     print(len(celeb_face))
     # vgg_face = VGGFace(root=args.img_path, transforms=test_trans)

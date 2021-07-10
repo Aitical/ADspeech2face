@@ -57,14 +57,14 @@ def cycle_face(dataloader):
         for data, label, lr in dataloader:
             yield data, label, lr
 
-def save_model(net, model_path, multi_gpu=False):
+
+def save_model(net, model_path,):
     model_dir = os.path.dirname(model_path)
     if not os.path.exists(model_dir):
        os.makedirs(model_dir)
-    if multi_gpu:
-        torch.save(net.state_dict(), model_path)
-    else:
-        torch.save(net.state_dict(), model_path)
+
+    torch.save(net.state_dict(), model_path)
+
 
 def rm_sil(voice_file, vad_obj):
     """

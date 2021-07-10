@@ -25,13 +25,13 @@ def face_evaluation(embd1, embd2):
         test_embed = torch.stack(test_dict[k], dim=0)
 
         anchor_embed = torch.stack(anchor_dict[k], dim=0)
-        print(test_embed.shape, anchor_embed.shape)
+        # print(test_embed.shape, anchor_embed.shape)
         # MxD DxN
         test_embed = torch.nn.functional.normalize(test_embed, dim=1)
         anchor_embed = torch.nn.functional.normalize(anchor_embed, dim=1)
         sim = test_embed.mm(anchor_embed.t())
         res[k] = [sim.mean(), sim.max(), sim.min()]
-        print(res[k])
+        # print(res[k])
     return res
 
 
@@ -39,5 +39,5 @@ if __name__ == '__main__':
     anchor_path, test_path = sys.argv[1], sys.argv[2]
     res = face_evaluation(anchor_path, test_path)
     metric = torch.tensor(list(res.values()))
-    print(metric.shape)
+    # print(metric.shape)
     print(metric.mean(dim=0))

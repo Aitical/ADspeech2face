@@ -9,5 +9,7 @@ model_paths = {
 	'shape_predictor': 'shape_predictor_68_face_landmarks.dat',
 	'moco': 'pretrained_models/moco_v2_800ep_pretrain.pth.tar',
 	'vgg_v0.1': 'pretrained_models/lpips/v0.1/vgg.pth',
-	'ResNetSE34': 'pretrained_models/seeking_the_shape_of_sound/baseline_lite_ap.model'
+	'ResNetSE34': 'pretrained_models/seeking_the_shape_of_sound/baseline_lite_ap.model',
+	'edsr': './pretrained_models/edsr_model/model_best.pt',
+	'arcface': './pretrained_models/arc_face_model/backbone.pth'
 }

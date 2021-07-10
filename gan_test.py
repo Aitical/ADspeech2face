@@ -3,41 +3,31 @@ import glob
 import torch
 import torchvision.utils as vutils
 import webrtcvad
-
 from mfcc import MFCC
-from configs.config254 import dataset_config, NETWORKS_PARAMETERS
-from models import get_network
-# from dataset import VoxCeleb1DataSet
 from utils import voice2face
 from tqdm import tqdm
 import sys
-from models import MixingG, VLightG, ResG
-from models.voice import ResNetSE34
-from configs.criteria import model_paths
+from parse_config import get_model
+import importlib
 
 # initialization
 vad_obj = webrtcvad.Vad(2)
 mfc_obj = MFCC(nfilt=64, lowerf=20., upperf=7200., samprate=16000, nfft=1024, wlen=0.025)
-#e_net = ResNetSE34()
-# e_net.load_state_dict(torch.load(model_paths['ResNetSE34'], map_location='cpu'), strict=False)
-# e_net.eval()
-# e_net.cuda()
-# e_net, _ = get_network('e', NETWORKS_PARAMETERS, train=False)
-# g_net, _ = get_network('g', NETWORKS_PARAMETERS, train=False)
-g_net = VLightG(512, [1024, 512, 256, 128, 64], 3)
-#g_net = torch.nn.DataParallel(g_net)
-miss = g_net.load_state_dict(torch.load(NETWORKS_PARAMETERS['g']['model_path']))
-# torch.save(g_net.module.state_dict(), NETWORKS_PARAMETERS['g']['model_path'])
-print(miss, 'ok')
-g_net.cuda()
 
-command = sys.argv[1]
+config_name = sys.argv[1]
+command = sys.argv[2]
+model_config = importlib.import_module(f'configs.{config_name}')
+dataset_config = model_config.dataset_config
+
+model_config.generator['pretrained'] = True
+
+e_net = get_model(model_config.voice_encoder)
+g_net = get_model(model_config.generator)
 
 voice_path = os.path.join(dataset_config['test_path'], '*/*/*.wav')
 voice_list = glob.glob(voice_path)
 for filename in tqdm(voice_list):
-    face_image = voice2face(None, g_net, filename, vad_obj, mfc_obj,
-                            NETWORKS_PARAMETERS['GPU'])
+    face_image = voice2face(e_net, g_net, filename, vad_obj, mfc_obj, stylegan=True)
     face = face_image[0]
     wav_file_path, wav_file_name = os.path.split(filename)
     face_name = wav_file_name.replace('.wav', f'_{command}.png')
