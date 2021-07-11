@@ -10,24 +10,25 @@ from utils import Meter, save_model
 import math
 import sys
 import importlib
-
-from parse_config import get_vxc_data_iter, get_model, get_edsr
-
+from stylegan2_pytorch import ModelLoader
+from parse_config import get_model, get_edsr, get_nips_data_iter
 
 config_name = sys.argv[1]
 model_config = importlib.import_module(f'configs.{config_name}')
+dataset_config = model_config
 
+# NETWORKS_PARAMETERS = config_module.NETWORKS_PARAMETERS
 experiment_name = model_config.exp_name
 experiment_path = model_config.exp_path
 save_path = os.path.join(experiment_path, experiment_name)
 os.makedirs(os.path.join(experiment_path, experiment_name), exist_ok=True)
+# dataset and dataloader
 
-
-print('Parsing your dataset...')
-data_iter = get_vxc_data_iter(model_config.dataset_config)
+voice_iter, face_iter = get_nips_data_iter(dataset_config)
 
 print('Making models')
 e_net = get_model(model_config.voice_encoder)
+
 
 g_net = get_model(model_config.generator)
 g_optimizer = optim.Adam(g_net.parameters(), **model_config.training_config['optimizer'])

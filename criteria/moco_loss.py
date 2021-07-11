@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
-from configs.paths_config import model_paths
+from configs.criteria import model_paths
 
 
 class MocoLoss(nn.Module):
@@ -67,3 +67,11 @@ class MocoLoss(nn.Module):
             count += 1
 
         return loss / count, sim_improvement / count, sim_logs
+
+
+if __name__ == '__main__':
+    loss = MocoLoss()
+    a = torch.rand(3, 3, 128, 128)
+    b = torch.rand(3, 3, 128, 128)
+    value = loss(a, b)
+    print(value, value.shape)

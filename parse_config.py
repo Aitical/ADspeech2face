@@ -5,10 +5,10 @@ from dataset import VoxCeleb1DataSet
 from torch.utils.data import DataLoader
 from dataset import cycle_data
 from configs import model_config
-from configs.model_config import dataset_config
+from dataset import get_dataset
+from utils import cycle_voice, cycle_face
 
-
-def get_data():
+def get_vxc_data_iter(dataset_config):
     face_transform = transforms.Compose(
         [transforms.ToTensor(),
          transforms.Normalize(mean=[0.5, 0.5, 0.5],
@@ -30,8 +30,6 @@ def get_data():
         sample_num=dataset_config['sample_num']
     )
 
-    dataset_batch_size = dataset_config['batch_size'] * dataset_config['sample_num']
-    # NETWORKS_PARAMETERS['c']['output_channel'] = vxc_dataset.num_classes
     print(len(vxc_dataset))
     train_loader = DataLoader(
         vxc_dataset,
@@ -44,6 +42,29 @@ def get_data():
 
     data_iter = cycle_data(train_loader)
     return data_iter
+
+
+def get_nips_data_iter(dataset_config):
+    print('Parsing your dataset...')
+    voice_list, face_list, id_class_num = get_dataset(dataset_config)
+    voice_dataset = dataset_config['voice_dataset'](voice_list,
+                                                    dataset_config['nframe_range'])
+    face_dataset = dataset_config['face_dataset'](face_list)
+
+    print('Preparing the dataloaders...')
+    collate_fn = dataset_config['collate_fn'](dataset_config['nframe_range'])
+    voice_loader = DataLoader(voice_dataset, shuffle=True, drop_last=True,
+                                  batch_size=dataset_config['batch_size'],
+                                  num_workers=dataset_config['workers_num'],
+                                  collate_fn=collate_fn)
+
+    face_loader = DataLoader(face_dataset, shuffle=True, drop_last=True,
+                             batch_size=dataset_config['batch_size'],
+                             num_workers=dataset_config['workers_num'])
+
+    voice_iterator = iter(cycle_voice(voice_loader))
+    face_iterator = iter(cycle_face(face_loader))
+    return voice_iterator, face_iterator
 
 
 def get_model(config_dict, multi_gpu=True):
