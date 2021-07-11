@@ -34,6 +34,7 @@ class Meter(object):
         fmtstr = '{name}:{' + self.display  + self.fmt + '},'
         return fmtstr.format(**self.__dict__)
 
+
 def get_collate_fn(nframe_range):
     def collate_fn(batch):
         min_nframe, max_nframe = nframe_range

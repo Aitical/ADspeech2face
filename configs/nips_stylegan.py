@@ -6,7 +6,7 @@ from dataset import VoiceDataset, FaceDataset
 import string
 from utils import get_collate_fn
 
-exp_name = 'v',
+exp_name = 'nips_stylegan'
 exp_path = './experiments'
 
 
@@ -29,9 +29,9 @@ dataset_config = {
     # dataloader
     'voice_dataset': VoiceDataset,
     'face_dataset': FaceDataset,
-    'batch_size': 128,
+    'batch_size': 32,
     'nframe_range': [300, 800],
-    'workers_num': 1,
+    'workers_num': 8,
     'collate_fn': get_collate_fn,
 
     # test data
@@ -40,22 +40,19 @@ dataset_config = {
 
 
 voice_encoder = dict(
-    model=VoiceEmbedNet,
+    model=ResNetSE34,
     params=dict(
-        input_channel=64,
-        channels=[256, 384, 576, 864],
-        output_channel=64
     ),
     pretrained=True,
-    model_path='pretrained_models/speech2face_model/voice_embedding.pth'
+    model_path='-'
 )
 
 generator = dict(
-    model=MixingG,
+    model=Generator,
     params=dict(
-        input_channel=64,
-        channels=[1024, 512, 256, 128, 64],
-        output_channel=3
+        size=128,
+        style_dim=512,
+        n_mlp=8,
     ),
     pretrained=False,
     model_path=f'./{exp_path}/{exp_name}/generator.pth',
@@ -84,5 +81,5 @@ training_config = dict(
         lr=2e-3,
         betas=(0.5,0.999)
     ),
-    multi_gpu=True,
+    multi_gpu=False,
 )

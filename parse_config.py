@@ -53,6 +53,7 @@ def get_nips_data_iter(dataset_config):
 
     print('Preparing the dataloaders...')
     collate_fn = dataset_config['collate_fn'](dataset_config['nframe_range'])
+
     voice_loader = DataLoader(voice_dataset, shuffle=True, drop_last=True,
                                   batch_size=dataset_config['batch_size'],
                                   num_workers=dataset_config['workers_num'],
@@ -70,15 +71,19 @@ def get_nips_data_iter(dataset_config):
 def get_model(config_dict, multi_gpu=True):
     model = config_dict['model'](**config_dict['params'])
 
-    if config_dict['pretrained']:
+    if config_dict['pretrained'] and config_dict['model_path'] != '-':
         miss = model.load_state_dict(torch.load(config_dict['model_path'], map_location='cpu'))
         print(miss)
         model.eval()
+
+    elif config_dict['pretrained']:
         for param in model.parameters():
-            param.requires_grad=False
+            param.requires_grad = False
 
     if multi_gpu:
         model = torch.nn.DataParallel(model)
+        model.cuda()
+    else:
         model.cuda()
     return model
 

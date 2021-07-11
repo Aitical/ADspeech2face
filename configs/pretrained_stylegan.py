@@ -30,7 +30,7 @@ dataset_config = {
     'face_dataset': FaceDataset,
     'batch_size': 128,
     'nframe_range': [300, 800],
-    'workers_num': 1,
+    'workers_num': 8,
     'collate_fn': get_collate_fn,
 
     # test data
