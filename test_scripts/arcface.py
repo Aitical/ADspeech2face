@@ -4,6 +4,7 @@ import torchvision.transforms as transforms
 from configs import model_config
 from parse_config import get_model
 
+
 model = get_model(model_config.arcface)
 
 img_trans = transforms.Compose([
