@@ -1494,7 +1494,7 @@ class ModelLoader:
 
         w_tensors = styles_def_to_tensor(w_def)
         noise = image_noise(batch_size, image_size, device=0)
-
+        # print(w_tensors.shape, noise.shape, print(num_layers))
         images = self.model.GAN.GE(w_tensors, noise)
         images.clamp_(0., 1.)
         return images

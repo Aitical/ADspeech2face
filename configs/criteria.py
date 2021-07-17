@@ -11,5 +11,6 @@ model_paths = {
 	'vgg_v0.1': 'pretrained_models/lpips/v0.1/vgg.pth',
 	'ResNetSE34': 'pretrained_models/seeking_the_shape_of_sound/baseline_lite_ap.model',
 	'edsr': './pretrained_models/edsr_model/model_best.pt',
-	'arcface': './pretrained_models/arc_face_model/backbone.pth'
+	'arcface': './pretrained_models/arc_face_model/backbone.pth',
+	'stylegan2-pytorch': './pretrained_models/stylegan2-pytorch/'
 }

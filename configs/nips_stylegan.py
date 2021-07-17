@@ -79,7 +79,7 @@ arcface = dict(
 training_config = dict(
     optimizer=dict(
         lr=2e-3,
-        betas=(0.5,0.999)
+        betas=(0.5, 0.999)
     ),
     multi_gpu=False,
 )
