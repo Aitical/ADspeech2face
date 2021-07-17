@@ -19,3 +19,8 @@ g_net = loader.model.GAN.GE
 for p in g_net.parameters():
     if p.requires_grad:
         print(p, p.requires_grad)
+
+styles = torch.rand(3, 6, 512).cuda()
+noise = torch.rand(3, 128, 128, 1).cuda()
+img = loader.model.GAN.GE(styles, noise)
+print(img.shape)
