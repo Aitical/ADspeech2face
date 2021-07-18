@@ -136,3 +136,25 @@ def voice2face(e_net, g_net, voice_file, vad_obj, mfc_obj, GPU=True, stylegan=Fa
     if isinstance(face, list):
         face=face[0]
     return face
+
+
+def voice2face_stylegan(e_net, stylemapping, g_net, voice_file, vad_obj, mfc_obj, GPU=True, stylegan=False):
+    vad_voice = rm_sil(voice_file, vad_obj)
+    fbank = get_fbank(vad_voice, mfc_obj)
+    fbank = fbank.T[np.newaxis, ...]
+    fbank = torch.from_numpy(fbank.astype('float32'))
+
+    if GPU:
+        fbank = fbank.cuda()
+    # print(fbank.shape)
+    if e_net is not None:
+        embedding = e_net(fbank)
+        embedding = F.normalize(embedding)
+    else:
+        embedding = fbank
+    embedding = embedding.reshape(1, -1).repeat(2, 1)
+    styles = stylemapping(embedding)
+    noise = torch.FloatTensor(2, 128, 128, 1).uniform_(0., 1.).cuda()
+    face = g_net(styles, noise)
+    face = face[0]
+    return face
