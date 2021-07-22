@@ -149,7 +149,6 @@ def voice2face_stylegan(e_net, stylemapping, g_net, voice_file, vad_obj, mfc_obj
     # print(fbank.shape)
     if e_net is not None:
         embedding = e_net(fbank)
-        embedding = F.normalize(embedding)
     else:
         embedding = fbank
     embedding = embedding.reshape(1, -1).repeat(2, 1)

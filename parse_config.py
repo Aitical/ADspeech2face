@@ -11,8 +11,6 @@ from utils import cycle_voice, cycle_face
 def get_vxc_data_iter(dataset_config):
     face_transform = transforms.Compose(
         [transforms.ToTensor(),
-         transforms.Normalize(mean=[0.5, 0.5, 0.5],
-                              std=[0.5, 0.5, 0.5])
          ]
     )
     voice_trans = transforms.Compose(
