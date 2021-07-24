@@ -1,9 +1,9 @@
 import torch
 from torchvision import transforms
 import configs.criteria
-from dataset import VoxCeleb1DataSet
+from dataset import VoxCeleb1DataSet, PKVoxCeleb1DataSet
 from torch.utils.data import DataLoader
-from dataset import cycle_data
+from dataset import cycle_data, cycle_pair
 from configs import model_config
 from dataset import get_dataset
 from utils import cycle_voice, cycle_face
@@ -41,6 +41,35 @@ def get_vxc_data_iter(dataset_config):
     data_iter = cycle_data(train_loader)
     return data_iter
 
+def get_pkvxc_data_iter(dataset_config):
+    face_transform = transforms.Compose(
+        [transforms.ToTensor(),
+         ]
+    )
+    voice_trans = transforms.Compose(
+        [
+            torch.tensor
+        ]
+    )
+    vxc_dataset = PKVoxCeleb1DataSet(
+        root_path=dataset_config['root_path'],
+        voice_frame=dataset_config['voice_frame'],
+        voice_ext=dataset_config['voice_ext'],
+        img_ext=dataset_config['img_ext'],
+        voice_transform=voice_trans,
+        img_transform=face_transform,
+    )
+    print(len(vxc_dataset), 'training samples')
+    train_loader = DataLoader(
+        vxc_dataset,
+        shuffle=True,
+        batch_size=dataset_config['batch_size'],
+        num_workers=dataset_config['num_workers'],
+        drop_last=True
+    )
+
+    data_iter = cycle_pair(train_loader)
+    return data_iter
 
 def get_nips_data_iter(dataset_config):
     print('Parsing your dataset...')

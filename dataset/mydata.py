@@ -189,6 +189,10 @@ def cycle_data(dataloader):
         for img, voice, label, lr in dataloader:
             yield img, voice, label, lr
 
+def cycle_pair(dataloader):
+    while True:
+        for img, voice, label in dataloader:
+            yield img, voice, label
 
 if __name__ == '__main__':
     face_transform = transforms.Compose(

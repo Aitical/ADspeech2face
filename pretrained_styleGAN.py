@@ -12,7 +12,7 @@ import sys
 import importlib
 from models.stylegan2_pytorch import ModelLoader
 from configs.criteria import model_paths
-from parse_config import get_model, get_edsr, get_vxc_data_iter
+from parse_config import get_model, get_edsr, get_pkvxc_data_iter
 from models.voice import StyleMapping
 from criteria import LPIPS
 
@@ -28,7 +28,7 @@ os.makedirs(os.path.join(experiment_path, experiment_name), exist_ok=True)
 # dataset and dataloader
 
 print('Parsing your dataset...')
-data_iter = get_vxc_data_iter(model_config.dataset_config)
+data_iter = get_pkvxc_data_iter(model_config.dataset_config)
 
 print('Making models')
 e_net = get_model(model_config.voice_encoder)
@@ -83,7 +83,7 @@ for it in range(150000):
     adjust_learning_rate(optimizer=s_optimizer, epoch=current_epoch, lr=3e-3)
     start_time = time.time()
 
-    face, voice, label, face_lr = next(data_iter)
+    face, voice, label = next(data_iter)
 
     face = face.cuda()
     voice = voice.cuda()

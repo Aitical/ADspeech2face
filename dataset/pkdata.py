@@ -9,7 +9,7 @@ import torch
 
 
 class PKVoxCeleb1DataSet(Dataset):
-    def __init__(self, root_path, sample_num, voice_frame=[300, 800], voice_transform=None, img_transform=None,  voice_ext='npy', img_ext='jpg'):
+    def __init__(self, root_path, voice_frame=[300, 800], voice_transform=None, img_transform=None,  voice_ext='npy', img_ext='jpg'):
         root = pathlib.Path(root_path)
         data = []
         folders = os.listdir(root)
@@ -17,7 +17,6 @@ class PKVoxCeleb1DataSet(Dataset):
         id2label = dict(zip(folders, id_index))
         self.id2label = id2label
         self.id_name = folders
-        self.sample_num = sample_num
         self.voice_transform = voice_transform
         self.img_transform = img_transform
 

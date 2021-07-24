@@ -12,7 +12,7 @@ dataset_config = {
     # voice dataset
     'voice_ext': 'npy',
     'img_ext': 'jpg',
-    'batch_size': 64,
+    'batch_size': 128,
     'voice_frame': [300, 800],
     'num_workers': 8,
     'collate_fn': voxceleb1_collate_fn,
