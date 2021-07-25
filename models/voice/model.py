@@ -54,7 +54,7 @@ class VoiceStyleNet(nn.Module):
             nn.AdaptiveAvgPool1d(1),
             nn.Flatten()
         )
-        self.style_mapping = StyleMapping(64, 64, 512)
+        self.style_mapping = StyleMapping(64, 6, 512)
 
     def forward(self, x):
         x = self.model(x)

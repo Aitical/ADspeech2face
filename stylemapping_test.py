@@ -4,7 +4,7 @@ import torch
 import torchvision.utils as vutils
 import webrtcvad
 from mfcc import MFCC
-from utils import voice2face_stylegan
+from utils import voice2face_encoder
 from tqdm import tqdm
 import sys
 from parse_config import get_model
@@ -27,7 +27,7 @@ experiment_name = model_config.exp_name
 experiment_path = model_config.exp_path
 save_path = os.path.join(experiment_path, experiment_name)
 
-e_net = get_model(model_config.voice_encoder)
+style_mapping = get_model(model_config.voice_encoder)
 
 g_loader = ModelLoader(
     base_dir=model_paths['stylegan2-pytorch'],   # path to where you invoked the command line tool
@@ -37,15 +37,16 @@ g_net = g_loader.model.GAN.GE
 num_layers = g_loader.model.GAN.GE.num_layers
 img_size = g_loader.model.GAN.GE.image_size
 
-style_mapping = StyleMapping(style_dim=512, style_heads=num_layers, mlp_dim=512)
+# style_mapping = StyleMapping(style_dim=512, style_heads=num_layers, mlp_dim=512)
 style_mapping.load_state_dict(torch.load(os.path.join(save_path, 'stylemapping.pt'), map_location='cpu'))
+style_mapping.eval()
 style_mapping.cuda()
 
 
 voice_path = os.path.join(dataset_config['test_path'], '*/*/*.wav')
 voice_list = glob.glob(voice_path)
 for filename in tqdm(voice_list):
-    face_image = voice2face_stylegan(e_net, style_mapping, g_net, filename, vad_obj, mfc_obj, stylegan=True)
+    face_image = voice2face_encoder(style_mapping, g_net, filename, vad_obj, mfc_obj, stylegan=True)
     face = face_image[0]
     wav_file_path, wav_file_name = os.path.split(filename)
     face_name = wav_file_name.replace('.wav', f'_{command}.png')

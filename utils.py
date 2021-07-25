@@ -112,7 +112,7 @@ def get_fbank(voice, mfc_obj):
     return fbank
 
 
-def voice2face(e_net, g_net, voice_file, vad_obj, mfc_obj, GPU=True, stylegan=False):
+def voice2face(e_net, g_net, voice_file, vad_obj, mfc_obj, GPU=True, stylegan=False, norm=False):
     vad_voice = rm_sil(voice_file, vad_obj)
     fbank = get_fbank(vad_voice, mfc_obj)
     fbank = fbank.T[np.newaxis, ...]
@@ -123,7 +123,8 @@ def voice2face(e_net, g_net, voice_file, vad_obj, mfc_obj, GPU=True, stylegan=Fa
     # print(fbank.shape)
     if e_net is not None:
         embedding = e_net(fbank)
-        embedding = F.normalize(embedding)
+        if norm:
+            embedding = F.normalize(embedding)
     else:
         embedding = fbank
     if stylegan:
@@ -155,5 +156,24 @@ def voice2face_stylegan(e_net, stylemapping, g_net, voice_file, vad_obj, mfc_obj
     styles = stylemapping(embedding)
     noise = torch.FloatTensor(2, 128, 128, 1).uniform_(0., 1.).cuda()
     face = g_net(styles, noise)
+    face = face[0]
+    return face
+
+def voice2face_encoder(e_net, g_net, voice_file, vad_obj, mfc_obj, GPU=True, stylegan=False):
+    vad_voice = rm_sil(voice_file, vad_obj)
+    fbank = get_fbank(vad_voice, mfc_obj)
+    fbank = fbank.T[np.newaxis, ...]
+    fbank = torch.from_numpy(fbank.astype('float32'))
+
+    if GPU:
+        fbank = fbank.cuda()
+    fbank = fbank.repeat(2, 1, 1)
+    if e_net is not None:
+        embedding = e_net(fbank)
+    else:
+        embedding = fbank
+
+    noise = torch.FloatTensor(2, 128, 128, 1).uniform_(0., 1.).cuda()
+    face = g_net(embedding, noise)
     face = face[0]
     return face
