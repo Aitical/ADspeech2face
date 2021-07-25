@@ -41,9 +41,7 @@ g_net = g_loader.model.GAN.GE
 num_layers = g_loader.model.GAN.GE.num_layers
 img_size = g_loader.model.GAN.GE.image_size
 
-style_mapping = StyleMapping(style_dim=512, style_heads=num_layers, mlp_dim=512)
-style_mapping.cuda()
-s_optimizer = optim.Adam(style_mapping.parameters(), **model_config.training_config['optimizer'])
+s_optimizer = optim.Adam(e_net.parameters(), **model_config.training_config['optimizer'])
 
 lpips_loss = LPIPS('vgg')
 lpips_loss.eval()
@@ -90,13 +88,12 @@ for it in range(150000):
     label = label.cuda()
     batch_size = voice.shape[0]
 
-    embedding = e_net(voice)
+    voice_styles = e_net(voice)
     noise = torch.FloatTensor(batch_size, img_size, img_size, 1).uniform_(0., 1.).cuda()
 
     data_time.update(time.time() - start_time)
 
     s_optimizer.zero_grad()
-    voice_styles = style_mapping(embedding)
     out_img = g_net(voice_styles, noise)
     prec_loss = lpips_loss(out_img, face)
     rec_loss = smooth_l1_loss(out_img, face)
@@ -108,7 +105,7 @@ for it in range(150000):
     D_real.update(rec_loss.item())
     C_real.update(prec_loss.item())
     # print status
-    if it % 90 == 0:
+    if it % 400 == 0:
         current_epoch += 1
         print(iteration, data_time, batch_time,
               D_real, D_fake, C_real, GD_fake, GC_fake)
@@ -122,7 +119,7 @@ for it in range(150000):
 
         # snapshot
 
-        save_model(style_mapping, os.path.join(save_path, 'stylemapping.pt'))
+        save_model(e_net, os.path.join(save_path, 'stylemapping.pt'))
 
     iteration.update(1)
 

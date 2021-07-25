@@ -1,2 +1,2 @@
 from .resent import ResNetSE34
-from .model import StyleMapping
+from .model import StyleMapping, VoiceStyleNet

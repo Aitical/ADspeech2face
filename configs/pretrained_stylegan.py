@@ -1,8 +1,8 @@
 from backbones import iresnet34
 from dataset import voxceleb1_collate_fn
-from models.voice import ResNetSE34
+from models.voice import VoiceStyleNet
 
-exp_name = 'voice_stylemapping'
+exp_name = 'voice_style_endoer'
 exp_path = './experiments'
 batch_size = 32
 sample_num = 4
@@ -23,10 +23,13 @@ dataset_config = {
 }
 
 voice_encoder = dict(
-    model=ResNetSE34,
+    model=VoiceStyleNet,
     params=dict(
+        input_channel=64,
+        output_channel=64,
+        channels=[256, 384, 576, 864]
     ),
-    pretrained=True,
+    pretrained=False,
     model_path='-'
 )
 
