@@ -15,6 +15,10 @@ from configs.criteria import model_paths
 from parse_config import get_model, get_edsr, get_pkvxc_data_iter
 from models.voice import StyleMapping
 from criteria import LPIPS
+from models.stylegan2 import Generator
+from models.stylegan import VoiceEmbedNet
+
+
 
 config_name = sys.argv[1]
 model_config = importlib.import_module(f'configs.{config_name}')
@@ -31,15 +35,11 @@ print('Parsing your dataset...')
 data_iter = get_pkvxc_data_iter(model_config.dataset_config)
 
 print('Making models')
-e_net = get_model(model_config.voice_encoder)
+g_ema_ = Generator(64, 512, 8, channel_multiplier=2).cuda()
+ckpt_ = torch.load(model_paths['stylegan_64'])
+g_ema_.load_state_dict(ckpt_['g_ema'])
 
-g_loader = ModelLoader(
-    base_dir=model_paths['stylegan2-pytorch'],   # path to where you invoked the command line tool
-    name='default'                   # the project name, defaults to 'default'
-)
-g_net = g_loader.model.GAN.GE
-num_layers = g_loader.model.GAN.GE.num_layers
-img_size = g_loader.model.GAN.GE.image_size
+e_net = VoiceEmbedNet(g_ema_).cuda()
 
 s_optimizer = optim.Adam(e_net.parameters(), **model_config.training_config['optimizer'])
 
@@ -88,17 +88,15 @@ for it in range(500000):
     label = label.cuda()
     batch_size = voice.shape[0]
 
-    voice_styles = e_net(voice)
-    noise = torch.FloatTensor(batch_size, img_size, img_size, 1).uniform_(0., 1.).cuda()
-
+    s_optimizer.zero_grad()
     data_time.update(time.time() - start_time)
 
-    s_optimizer.zero_grad()
-    out_img = g_net(voice_styles, noise)
+    out_img = e_net(voice)
+
     prec_loss = lpips_loss(out_img, face)
     rec_loss = smooth_l1_loss(out_img, face)
     # print(rec_loss.item(), prec_loss.item())
-    (rec_loss + prec_loss).backward()
+    (rec_loss + 0.1*prec_loss).backward()
     s_optimizer.step()
 
     batch_time.update(time.time() - start_time)
@@ -119,7 +117,7 @@ for it in range(500000):
 
         # snapshot
 
-        save_model(e_net, os.path.join(save_path, 'stylemapping.pt'))
+        save_model(e_net, os.path.join(save_path, 'embedding_style.pt'))
 
     iteration.update(1)
 

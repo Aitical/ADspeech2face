@@ -2,7 +2,7 @@ from backbones import iresnet34
 from dataset import voxceleb1_collate_fn
 from models.voice import VoiceStyleNet
 
-exp_name = 'voice_style_endoer'
+exp_name = 'voice_style_encoder'
 exp_path = './experiments'
 batch_size = 32
 sample_num = 4
@@ -12,7 +12,7 @@ dataset_config = {
     # voice dataset
     'voice_ext': 'npy',
     'img_ext': 'jpg',
-    'batch_size': 128,
+    'batch_size': 64,
     'voice_frame': [300, 800],
     'num_workers': 8,
     'collate_fn': voxceleb1_collate_fn,

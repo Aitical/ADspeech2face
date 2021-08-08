@@ -9,7 +9,7 @@ import torch
 
 
 class PKVoxCeleb1DataSet(Dataset):
-    def __init__(self, root_path, voice_frame=[300, 800], voice_transform=None, img_transform=None,  voice_ext='npy', img_ext='jpg'):
+    def __init__(self, root_path, voice_frame=[300, 800], voice_transform=None, img_transform=None,  voice_ext='npy', img_ext='jpg', img_size=64):
         root = pathlib.Path(root_path)
         data = []
         folders = os.listdir(root)
@@ -45,6 +45,7 @@ class PKVoxCeleb1DataSet(Dataset):
         self.data = data
         self.length = len(self.img_path)
         self.num_classes = self.length
+        self.img_size = img_size
 
     def __len__(self):
         return self.length
@@ -54,7 +55,7 @@ class PKVoxCeleb1DataSet(Dataset):
         img_path, id_index = self.img_path[index]
         data_message = self.data[id_index]
 
-        img_data = Image.open(img_path).convert('RGB')
+        img_data = Image.open(img_path).convert('RGB').resize((self.img_size, self.img_size), Image.BICUBIC)
         if self.img_transform is not None:
             img_data = self.img_transform(img_data)
 

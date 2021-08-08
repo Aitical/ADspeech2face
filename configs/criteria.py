@@ -12,5 +12,6 @@ model_paths = {
 	'ResNetSE34': 'pretrained_models/seeking_the_shape_of_sound/baseline_lite_ap.model',
 	'edsr': './pretrained_models/edsr_model/model_best.pt',
 	'arcface': './pretrained_models/arc_face_model/backbone.pth',
-	'stylegan2-pytorch': './pretrained_models/stylegan2-pytorch/'
+	'stylegan2-pytorch': './pretrained_models/stylegan2-pytorch/',
+	'stylegan_64': './pretrained_models/stylegan2/stylegan_64.pt'
 }
