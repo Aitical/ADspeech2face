@@ -17,12 +17,14 @@ from models.voice import StyleMapping
 from criteria import LPIPS
 from models.stylegan2 import Generator
 from models.stylegan import VoiceEmbedNet
-
+from torch.utils.tensorboard import SummaryWriter
+from torchvision.utils import make_grid
 
 
 config_name = sys.argv[1]
 model_config = importlib.import_module(f'configs.{config_name}')
 dataset_config = model_config
+writer = SummaryWriter('./runs/voice_style')
 
 # NETWORKS_PARAMETERS = config_module.NETWORKS_PARAMETERS
 experiment_name = model_config.exp_name
@@ -107,6 +109,8 @@ for it in range(500000):
         current_epoch += 1
         print(iteration, data_time, batch_time,
               D_real, D_fake, C_real, GD_fake, GC_fake)
+        img = make_grid(torch.cat([face, out_img], dim=1), nrow=4, value_range=(-1, 1), normalize=True)
+        writer.add_image('train/img', img, global_step=it//400)
         data_time.reset()
         batch_time.reset()
         D_real.reset()

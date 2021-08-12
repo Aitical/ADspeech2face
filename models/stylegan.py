@@ -46,7 +46,8 @@ class VoiceEmbedNet(nn.Module):
         )
 
         self.z_mapping = nn.Sequential(
-            nn.AdaptiveAvgPool1d(1),
+            nn.AdaptiveAvgPool1d(4),
+            nn.Conv1d(512, 512, 4),
             nn.Flatten(),
             nn.Linear(512, 512,),
             nn.ReLU(True),
@@ -93,7 +94,7 @@ class VoiceEmbedNet(nn.Module):
 
         batch_size = x.shape[0]
         out = self.g.input(styles[0])
-        out = self.g.conv1(out, styles[0], noise=torch.rand(batch_size, 512, 4, 4, device=x.device)*styles[0][:, :, None, None])
+        out = self.g.conv1(out, styles[0], noise=styles[0][:, :, None, None])
         skip = self.g.to_rgb1(out, styles[0])
 
         i = 1
@@ -101,8 +102,8 @@ class VoiceEmbedNet(nn.Module):
         for conv1, conv2, style_feature, to_rgb in zip(
                 self.g.convs[::2], self.g.convs[1::2], styles, self.g.to_rgbs
         ):
-            out = conv1(out, style_feature, noise=torch.rand(batch_size, 512, size, size, device=x.device)*style_feature[:, :, None, None])
-            out = conv2(out, style_feature, noise=torch.rand(batch_size, 512, size, size, device=x.device)*style_feature[:, :, None, None])
+            out = conv1(out, style_feature, noise=style_feature[:, :, None, None])
+            out = conv2(out, style_feature, noise=style_feature[:, :, None, None])
             skip = to_rgb(out, style_feature, skip)
             size *= 2
             i += 2
